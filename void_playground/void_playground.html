@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Void Playground — Gravity Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: #030510;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* ── All styles scoped to #vp-root ── */
+  #vp-root {
+    --vp-accent:  #00ffe1;
+    --vp-accent2: #ff4f7b;
+    --vp-accent3: #ffe066;
+    --vp-text:    #c8d8ff;
+    --vp-dim:     #4a5a8a;
+    --vp-panel:   rgba(10, 16, 40, 0.88);
+    --vp-glow:    0 0 12px #00ffe1aa;
+
+    position: relative;
+    width: 100%;
+    /* Tall enough to scroll — canvas sticks via position:sticky */
+    min-height: 100vh;
+    background: #030510;
+    font-family: 'Space Mono', monospace;
+    color: var(--vp-text);
+    -webkit-user-select: none;
+    user-select: none;
+    box-sizing: border-box;
+  }
+
+  /* Canvas viewport — sticks to top while page scrolls */
+  #vp-canvas-wrap {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  #vp-c {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+  }
+
+  #vp-nova-flash {
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.05s;
+  }
+
+  /* ── UI panels — absolute within the sticky canvas wrap ── */
+  #vp-ui {
+    position: absolute;
+    top: 16px; left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #vp-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px; font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--vp-accent);
+    text-shadow: var(--vp-glow);
+    text-transform: uppercase;
+    margin: 0; padding: 0; line-height: 1.2;
+  }
+
+  #vp-subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px; color: var(--vp-dim);
+    letter-spacing: 0.12em; margin: 0; padding: 0;
+  }
+
+  #vp-stats {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; color: var(--vp-dim);
+    line-height: 1.9; letter-spacing: 0.06em;
+    margin: 0; padding: 0;
+  }
+  #vp-stats .vp-val { color: var(--vp-accent); }
+
+  #vp-mode-panel {
+    position: absolute;
+    top: 16px; right: 16px;
+    display: flex; flex-direction: column;
+    gap: 6px; align-items: flex-end;
+    z-index: 10;
+  }
+
+  .vp-mode-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px; letter-spacing: 0.15em;
+    color: var(--vp-dim); text-transform: uppercase;
+    text-align: right; margin: 0; padding: 0;
+  }
+
+  .vp-mode-row { display: flex; gap: 6px; }
+
+  #vp-controls {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    display: flex; gap: 8px;
+    flex-wrap: wrap; max-width: 340px;
+    z-index: 10;
+  }
+
+  #vp-hint {
+    position: absolute;
+    bottom: 16px; right: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 8px; color: var(--vp-dim);
+    line-height: 2; letter-spacing: 0.06em;
+    text-align: right; pointer-events: none;
+    z-index: 10; margin: 0; padding: 0;
+  }
+  #vp-hint .vp-key { color: var(--vp-accent3); }
+
+  /* ── Buttons — scoped ── */
+  .vp-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; font-weight: 400;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 6px 11px; border: 1px solid var(--vp-dim);
+    border-radius: 0; background: var(--vp-panel);
+    color: var(--vp-text); cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, box-shadow 0.15s, background 0.15s;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    outline: none; margin: 0; line-height: 1.2;
+    -webkit-appearance: none; appearance: none;
+  }
+  .vp-btn:hover {
+    border-color: var(--vp-accent); color: var(--vp-accent);
+    box-shadow: var(--vp-glow); background: rgba(0,255,225,0.06);
+  }
+  .vp-btn.vp-active {
+    border-color: var(--vp-accent); color: var(--vp-accent);
+    background: rgba(0,255,225,0.10); box-shadow: var(--vp-glow);
+  }
+  .vp-btn.vp-danger { border-color: #3a2a3a; color: #aa7788; }
+  .vp-btn.vp-danger:hover {
+    border-color: var(--vp-accent2); color: var(--vp-accent2);
+    box-shadow: 0 0 12px #ff4f7baa; background: rgba(255,79,123,0.08);
+  }
+  .vp-btn.vp-bang { border-color: #7a3040; color: var(--vp-accent2); }
+  .vp-btn.vp-bang:hover {
+    border-color: var(--vp-accent2);
+    box-shadow: 0 0 12px #ff4f7baa; background: rgba(255,79,123,0.10);
+  }
+</style>
+</head>
+<body>
+<div id="vp-root">
+
+  <div id="vp-canvas-wrap">
+    <canvas id="vp-c"></canvas>
+    <div id="vp-nova-flash"></div>
+
+    <!-- UI panels sit inside the sticky wrap so they're always visible -->
+    <div id="vp-ui">
+      <div id="vp-title">Void Playground</div>
+      <div id="vp-subtitle">gravity sandbox</div>
+      <div id="vp-stats">
+        Bodies:&nbsp;<span class="vp-val" id="vp-s-bodies">0</span><br>
+        Absorbed:&nbsp;<span class="vp-val" id="vp-s-mass">0</span><br>
+        Collisions:&nbsp;<span class="vp-val" id="vp-s-coll">0</span><br>
+        Time:&nbsp;<span class="vp-val" id="vp-s-time">0s</span>
+      </div>
+    </div>
+
+    <div id="vp-mode-panel">
+      <div class="vp-mode-label">spawn mode</div>
+      <div class="vp-mode-row">
+        <button class="vp-btn vp-active" id="vp-m-planet" onclick="vpSetMode('planet')">🪐 Planet</button>
+        <button class="vp-btn" id="vp-m-comet" onclick="vpSetMode('comet')">☄️ Comet</button>
+        <button class="vp-btn" id="vp-m-star" onclick="vpSetMode('star')">⭐ Star</button>
+      </div>
+      <div class="vp-mode-label" style="margin-top:4px">gravity well</div>
+      <div class="vp-mode-row">
+        <button class="vp-btn vp-active" id="vp-g-attract" onclick="vpSetGrav('attract')">▼ Pull</button>
+        <button class="vp-btn" id="vp-g-repel" onclick="vpSetGrav('repel')">▲ Push</button>
+      </div>
+    </div>
+
+    <div id="vp-controls">
+      <button class="vp-btn vp-active" id="vp-btn-trails" onclick="vpToggleTrails()">Trails ON</button>
+      <button class="vp-btn" onclick="vpAddRandom()">+ Burst</button>
+      <button class="vp-btn vp-bang" onclick="vpBigBang()">💥 Big Bang</button>
+      <button class="vp-btn vp-danger" onclick="vpClearAll()">Clear</button>
+    </div>
+
+    <div id="vp-hint">
+      <span class="vp-key">Click &amp; drag</span> — launch a body<br>
+      <span class="vp-key">Hold longer</span> — more mass<br>
+      <span class="vp-key">Drag direction</span> — velocity<br>
+      <span class="vp-key">Right-click</span> — move the hole
+    </div>
+  </div><!-- /vp-canvas-wrap -->
+
+</div><!-- /vp-root -->
+
+<script>
+(function () {
+  'use strict';
+
+  const canvas = document.getElementById('vp-c');
+  const ctx    = canvas.getContext('2d');
+  const flash  = document.getElementById('vp-nova-flash');
+  const wrap   = document.getElementById('vp-canvas-wrap');
+
+  let W, H;
+  function resize() {
+    W = canvas.width  = wrap.offsetWidth;
+    H = canvas.height = wrap.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  let bodies       = [];
+  let particles    = [];
+  let hole         = null;
+  let trailsOn     = true;
+  let spawnMode    = 'planet';
+  let gravDir      = 1;
+  let collisions   = 0;
+  let massAbsorbed = 0;
+  let startTime    = Date.now();
+  let dragging     = false;
+  let dragStart    = null;
+  let dragCurrent  = null;
+  let dragStartTime = 0;
+  let movingHole   = false;
+
+  const G         = 180;
+  const HOLE_MASS = 12000;
+
+  const palettes = {
+    planet: ['#4fc3f7','#81d4fa','#29b6f6','#0288d1','#4dd0e1','#80cbc4'],
+    comet:  ['#ffe066','#ffb347','#ff7043','#ffcc02','#fff176'],
+    star:   ['#fff9c4','#ffffff','#ffe082','#ffecb3','#f8bbd0','#e1bee7'],
+  };
+
+  function randFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  class Body {
+    constructor(x, y, vx, vy, mass, color) {
+      this.x=x; this.y=y; this.vx=vx; this.vy=vy;
+      this.mass=mass; this.r=Math.cbrt(mass)*1.5;
+      this.color=color; this.trail=[]; this.dead=false; this.age=0;
+    }
+    update(dt) {
+      if (this.dead) return;
+      this.age++;
+      if (hole) {
+        let dx=hole.x-this.x, dy=hole.y-this.y;
+        let dist=Math.sqrt(dx*dx+dy*dy)||2;
+        let force=gravDir*G*HOLE_MASS*this.mass/(dist*dist);
+        this.vx+=(force/this.mass)*(dx/dist)*dt;
+        this.vy+=(force/this.mass)*(dy/dist)*dt;
+        if (dist < hole.r+this.r*0.5) {
+          this.dead=true; massAbsorbed+=Math.round(this.mass);
+          collisions++; hole.pulseTime=1;
+          spawnDebris(this.x,this.y,this.color,6); return;
+        }
+      }
+      for (let b of bodies) {
+        if (b===this||b.dead) continue;
+        let dx=b.x-this.x, dy=b.y-this.y;
+        let dist=Math.sqrt(dx*dx+dy*dy)||1;
+        if (dist < this.r+b.r) {
+          if (this.mass>=b.mass) {
+            let tm=this.mass+b.mass;
+            this.vx=(this.vx*this.mass+b.vx*b.mass)/tm;
+            this.vy=(this.vy*this.mass+b.vy*b.mass)/tm;
+            this.mass=tm; this.r=Math.cbrt(tm)*1.5;
+            b.dead=true; collisions++;
+            spawnDebris((this.x+b.x)/2,(this.y+b.y)/2,b.color,4);
+          }
+          continue;
+        }
+        if (dist>200) continue;
+        let force=0.06*this.mass*b.mass/(dist*dist);
+        this.vx+=(force/this.mass)*(dx/dist)*dt;
+        this.vy+=(force/this.mass)*(dy/dist)*dt;
+      }
+      let spd=Math.sqrt(this.vx*this.vx+this.vy*this.vy);
+      if (spd>600){this.vx*=600/spd;this.vy*=600/spd;}
+      this.x+=this.vx*dt; this.y+=this.vy*dt;
+      if (trailsOn){
+        this.trail.push({x:this.x,y:this.y});
+        if(this.trail.length>60) this.trail.shift();
+      } else { this.trail=[]; }
+      if(this.x<-400||this.x>W+400||this.y<-400||this.y>H+400) this.dead=true;
+    }
+    draw() {
+      if (this.dead) return;
+      if (this.trail.length>1) {
+        for (let i=1;i<this.trail.length;i++){
+          let a=(i/this.trail.length)*0.38;
+          let lw=(i/this.trail.length)*this.r*0.55;
+          ctx.beginPath();
+          ctx.moveTo(this.trail[i-1].x,this.trail[i-1].y);
+          ctx.lineTo(this.trail[i].x,this.trail[i].y);
+          ctx.strokeStyle=this.color+Math.round(a*255).toString(16).padStart(2,'0');
+          ctx.lineWidth=Math.max(0.4,lw); ctx.stroke();
+        }
+      }
+      let grd=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r*3);
+      grd.addColorStop(0,this.color+'bb'); grd.addColorStop(1,this.color+'00');
+      ctx.beginPath(); ctx.arc(this.x,this.y,this.r*3,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+      ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+      ctx.fillStyle=this.color; ctx.fill();
+    }
+  }
+
+  class Particle {
+    constructor(x,y,vx,vy,color,life){
+      this.x=x;this.y=y;this.vx=vx;this.vy=vy;
+      this.color=color;this.life=life;this.maxLife=life;
+    }
+    update(dt){this.x+=this.vx*dt;this.y+=this.vy*dt;this.vx*=0.96;this.vy*=0.96;this.life-=dt;}
+    draw(){
+      let a=Math.max(0,this.life/this.maxLife);
+      ctx.beginPath();ctx.arc(this.x,this.y,2*a,0,Math.PI*2);
+      ctx.fillStyle=this.color+Math.round(a*255).toString(16).padStart(2,'0');ctx.fill();
+    }
+  }
+
+  class BlackHole {
+    constructor(x,y){this.x=x;this.y=y;this.r=22;this.angle=0;this.pulseTime=0;}
+    update(){this.angle+=0.012;if(this.pulseTime>0)this.pulseTime-=0.05;}
+    draw(){
+      let pulse=Math.max(0,this.pulseTime);
+      for(let i=0;i<4;i++){
+        let rr=this.r*(1.8+i*0.7)+pulse*8;
+        let a=(0.4-i*0.08)*(1+pulse*0.5);
+        ctx.beginPath();ctx.arc(this.x,this.y,rr,0,Math.PI*2);
+        ctx.strokeStyle=`rgba(0,255,225,${a.toFixed(2)})`;ctx.lineWidth=1.5-i*0.2;ctx.stroke();
+      }
+      ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.angle);
+      for(let i=0;i<3;i++){
+        ctx.rotate(Math.PI*2/3);ctx.beginPath();ctx.arc(0,0,this.r*1.5,0,Math.PI*0.6);
+        ctx.strokeStyle=`rgba(255,79,123,${0.5+pulse*0.5})`;ctx.lineWidth=2;ctx.stroke();
+      }
+      ctx.restore();
+      let grd=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r*2.5+pulse*12);
+      grd.addColorStop(0,'#000000ff');grd.addColorStop(0.4,'#000000ff');
+      grd.addColorStop(0.7,'#1a003066');grd.addColorStop(1,'#00000000');
+      ctx.beginPath();ctx.arc(this.x,this.y,this.r*2.5+pulse*12,0,Math.PI*2);
+      ctx.fillStyle=grd;ctx.fill();
+      ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+      ctx.fillStyle='#000';ctx.fill();
+      ctx.strokeStyle='#00ffe1';ctx.lineWidth=1;ctx.stroke();
+    }
+  }
+
+  function spawnDebris(x,y,color,n){
+    for(let i=0;i<n;i++){
+      let a=Math.random()*Math.PI*2,s=Math.random()*120+40;
+      particles.push(new Particle(x,y,Math.cos(a)*s,Math.sin(a)*s,color,0.5+Math.random()*0.5));
+    }
+  }
+
+  hole=new BlackHole(0,0);
+  function placeHole(){hole.x=W/2;hole.y=H/2;}
+  placeHole();
+  window.addEventListener('resize',placeHole);
+
+  window.vpSetMode=function(m){
+    spawnMode=m;
+    document.querySelectorAll('[id^="vp-m-"]').forEach(b=>b.classList.remove('vp-active'));
+    document.getElementById('vp-m-'+m).classList.add('vp-active');
+  };
+  window.vpSetGrav=function(g){
+    gravDir=g==='attract'?1:-1;
+    document.getElementById('vp-g-attract').classList.toggle('vp-active',g==='attract');
+    document.getElementById('vp-g-repel').classList.toggle('vp-active',g==='repel');
+  };
+  window.vpToggleTrails=function(){
+    trailsOn=!trailsOn;
+    const btn=document.getElementById('vp-btn-trails');
+    btn.textContent=trailsOn?'Trails ON':'Trails OFF';
+    btn.classList.toggle('vp-active',trailsOn);
+  };
+  window.vpClearAll=function(){
+    bodies=[];particles=[];collisions=0;massAbsorbed=0;startTime=Date.now();
+  };
+  window.vpAddRandom=function(){
+    for(let i=0;i<8;i++){
+      let angle=Math.random()*Math.PI*2;
+      let dist=120+Math.random()*Math.min(W,H)*0.32;
+      let x=hole.x+Math.cos(angle)*dist,y=hole.y+Math.sin(angle)*dist;
+      let pal=palettes[['planet','comet','star'][Math.floor(Math.random()*3)]];
+      let tang=angle+Math.PI/2,spd=60+Math.random()*80;
+      bodies.push(new Body(x,y,Math.cos(tang)*spd+(Math.random()-0.5)*40,Math.sin(tang)*spd+(Math.random()-0.5)*40,8+Math.random()*30,randFrom(pal)));
+    }
+  };
+  window.vpBigBang=function(){
+    flash.style.opacity='0.75';
+    setTimeout(()=>{flash.style.opacity='0';},80);
+    let cx=W/2+(Math.random()-0.5)*100,cy=H/2+(Math.random()-0.5)*100;
+    for(let i=0;i<24;i++){
+      let a=(i/24)*Math.PI*2,s=100+Math.random()*200;
+      let pal=palettes[['planet','comet','star'][Math.floor(Math.random()*3)]];
+      bodies.push(new Body(cx,cy,Math.cos(a)*s,Math.sin(a)*s,10+Math.random()*40,randFrom(pal)));
+    }
+  };
+
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('mousedown',e=>{
+    if(e.button===2){movingHole=true;return;}
+    dragging=true;dragStart={x:e.offsetX,y:e.offsetY};
+    dragCurrent={x:e.offsetX,y:e.offsetY};dragStartTime=Date.now();
+  });
+  canvas.addEventListener('mousemove',e=>{
+    if(movingHole){hole.x=e.offsetX;hole.y=e.offsetY;return;}
+    if(dragging)dragCurrent={x:e.offsetX,y:e.offsetY};
+  });
+  canvas.addEventListener('mouseup',e=>{
+    if(movingHole){movingHole=false;return;}
+    if(!dragging)return;dragging=false;
+    let held=(Date.now()-dragStartTime)/1000,mass=Math.min(10+held*80,200);
+    let dx=dragStart.x-dragCurrent.x,dy=dragStart.y-dragCurrent.y;
+    bodies.push(new Body(dragStart.x,dragStart.y,dx*2.5,dy*2.5,mass,randFrom(palettes[spawnMode])));
+    dragStart=null;dragCurrent=null;
+  });
+  canvas.addEventListener('mouseleave',()=>{dragging=false;movingHole=false;dragStart=null;dragCurrent=null;});
+
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();
+    let t=e.touches[0],r=canvas.getBoundingClientRect();
+    dragging=true;dragStart={x:t.clientX-r.left,y:t.clientY-r.top};
+    dragCurrent={...dragStart};dragStartTime=Date.now();
+  },{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();
+    let t=e.touches[0],r=canvas.getBoundingClientRect();
+    dragCurrent={x:t.clientX-r.left,y:t.clientY-r.top};
+  },{passive:false});
+  canvas.addEventListener('touchend',e=>{e.preventDefault();
+    if(!dragging)return;dragging=false;
+    let held=(Date.now()-dragStartTime)/1000,mass=Math.min(10+held*80,200);
+    let dx=dragStart.x-dragCurrent.x,dy=dragStart.y-dragCurrent.y;
+    bodies.push(new Body(dragStart.x,dragStart.y,dx*2.5,dy*2.5,mass,randFrom(palettes[spawnMode])));
+    dragStart=null;dragCurrent=null;
+  },{passive:false});
+
+  // Background stars drawn on game canvas
+  let stars=[];
+  function initStars(){
+    stars=[];
+    for(let i=0;i<200;i++) stars.push({
+      x:Math.random()*W,y:Math.random()*H,
+      r:Math.random()*1.2,alpha:Math.random()*0.7+0.1,
+      twinkle:Math.random()*Math.PI*2,speed:0.01+Math.random()*0.03
+    });
+  }
+  initStars();
+  window.addEventListener('resize',initStars);
+
+  let last=performance.now();
+  function loop(now){
+    let dt=Math.min((now-last)/1000,0.05);last=now;
+    ctx.fillStyle='rgba(3,5,16,0.92)';
+    ctx.fillRect(0,0,W,H);
+
+    for(let s of stars){
+      s.twinkle+=s.speed;
+      let a=s.alpha*(0.6+0.4*Math.sin(s.twinkle));
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,220,255,${a})`;ctx.fill();
+    }
+
+    hole.update();hole.draw();
+    for(let b of bodies)b.update(dt);
+    bodies=bodies.filter(b=>!b.dead);
+    for(let b of bodies)b.draw();
+    for(let p of particles)p.update(dt);
+    particles=particles.filter(p=>p.life>0);
+    for(let p of particles)p.draw();
+
+    if(dragging&&dragStart&&dragCurrent){
+      let dx=dragStart.x-dragCurrent.x,dy=dragStart.y-dragCurrent.y;
+      let held=(Date.now()-dragStartTime)/1000,mass=Math.min(10+held*80,200);
+      let r=Math.cbrt(mass)*1.5,pal=palettes[spawnMode];
+      ctx.beginPath();ctx.moveTo(dragStart.x,dragStart.y);
+      ctx.lineTo(dragStart.x+dx*0.7,dragStart.y+dy*0.7);
+      ctx.strokeStyle='#ffffff44';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+      ctx.beginPath();ctx.arc(dragStart.x,dragStart.y,r,0,Math.PI*2);
+      ctx.fillStyle=pal[0]+'77';ctx.fill();ctx.strokeStyle=pal[0];ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#ffffff88';ctx.font='8px Space Mono, monospace';
+      ctx.fillText(`mass: ${Math.round(mass)}`,dragStart.x+r+4,dragStart.y-r);
+    }
+
+    let elapsed=Math.round((Date.now()-startTime)/1000);
+    document.getElementById('vp-s-bodies').textContent=bodies.length;
+    document.getElementById('vp-s-mass').textContent=massAbsorbed;
+    document.getElementById('vp-s-coll').textContent=collisions;
+    document.getElementById('vp-s-time').textContent=elapsed+'s';
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
