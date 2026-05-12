@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmic Fortune Arcade</title>
+<style>
+.cfa-wrapper {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0a0f2c, #111a4a, #1f2f7a);
+  color: #e8ecff;
+  padding: 25px;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 650px;
+  margin: auto;
+  text-align: center;
+  box-shadow: 0 0 40px rgba(0,0,0,0.7);
+  position: relative;
+  overflow: hidden;
+}
+
+.cfa-wrapper::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: cfa-stars 60s linear infinite;
+  pointer-events: none; /* FIX: allow clicks through background */
+}
+
+@keyframes cfa-stars {
+  from { transform: translate(0,0); }
+  to { transform: translate(-200px,-200px); }
+}
+
+.cfa-title {
+  font-size: 26px;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.cfa-crystal-ball {
+  width: 180px;
+  height: 180px;
+  margin: 25px auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #9f8cff, #2c2f7a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: inset 0 0 20px rgba(255,255,255,0.2), 0 0 25px rgba(100,120,255,0.5);
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+.cfa-crystal-ball.shake {
+  animation: cfa-shake 0.6s ease;
+}
+
+@keyframes cfa-shake {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(6deg); }
+  50% { transform: rotate(-6deg); }
+  75% { transform: rotate(6deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.cfa-button {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff7b00, #ffb347);
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.cfa-button:hover {
+  filter: brightness(1.1);
+}
+
+.cfa-score {
+  margin-top: 15px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.cfa-mini-game {
+  margin-top: 25px;
+  padding: 15px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+}
+
+.cfa-input {
+  padding: 7px;
+  border-radius: 8px;
+  border: none;
+  margin-right: 5px;
+  width: 120px;
+}
+</style>
+</head>
+<body>
+
+<div class="cfa-wrapper">
+  <div class="cfa-title">Cosmic Fortune Arcade</div>
+  <div id="cfa-ball" class="cfa-crystal-ball">Focus and reveal your fortune</div>
+  <button class="cfa-button" onclick="cfaGetFortune()">Reveal Fortune</button>
+
+  
+
+  <div class="cfa-mini-game">
+    <div>Guess the Cosmic Number (1–1000)</div>
+    <input id="cfa-guess" class="cfa-input" type="number" min="1" max="1000">
+    <button class="cfa-button" onclick="cfaGuessNumber()">Guess</button>
+    <div id="cfa-result" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  let cfaCount = 0; /* retained but unused */
+
+  const cfaFortunes = [
+    "A significant change is approaching.",
+    "Patience will bring clarity.",
+    "A new idea will lead to success.",
+    "An opportunity will present itself soon.",
+    "Your efforts will soon be rewarded.",
+    "A decision you make today will matter later.",
+    "Unexpected news will arrive.",
+    "A challenge will turn into an advantage.",
+    "Someone will offer helpful guidance.",
+    "Focus will bring you closer to your goal.",
+    "A small step will lead to something big.",
+    "You will find what you have been seeking.",
+    "A moment of insight will change your direction.",
+    "Something hidden will become clear.",
+    "Your persistence will pay off.",
+    "A new path will reveal itself.",
+    "An old idea will prove useful again.",
+    "A surprising connection will form.",
+    "Timing will work in your favor.",
+    "A risk may bring a reward.",
+    "Clarity will replace confusion.",
+    "A goal will become achievable.",
+    "You will gain valuable knowledge.",
+    "A turning point is near.",
+    "An answer will come when needed.",
+    "Your confidence will grow.",
+    "You will overcome a current obstacle.",
+    "A plan will come together successfully.",
+    "Something overlooked will become important.",
+    "A new perspective will help you move forward."
+  ];
+
+  window.cfaGetFortune = function() {
+    
+
+    const ball = document.getElementById('cfa-ball');
+    
+
+    
+    ball.classList.add('shake');
+
+    setTimeout(() => {
+      const fortune = cfaFortunes[Math.floor(Math.random() * cfaFortunes.length)];
+      ball.textContent = fortune;
+      ball.classList.remove('shake');
+
+      
+    }, 600);
+  }
+
+  window.cfaGuessNumber = function() {
+    const input = document.getElementById('cfa-guess');
+    const result = document.getElementById('cfa-result');
+    const guess = parseInt(input.value);
+    const number = Math.floor(Math.random() * 1000) + 1;
+
+    if (!guess || guess < 1 || guess > 1000) {
+      result.textContent = "Enter a number between 1 and 1000.";
+      return;
+    }
+
+    if (guess === number) {
+      result.textContent = "Correct. The number matched.";
+    } else {
+      result.textContent = `Incorrect. The number was ${number}.`;
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
