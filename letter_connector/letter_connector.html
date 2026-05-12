@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Connector</title>
+    <style>
+        #ws-clone-root {
+            --ws-primary: #4a90e2;
+            --ws-primary-dark: #357abd;
+            --ws-secondary: #f8f9fa;
+            --ws-accent: #ffcc00;
+            --ws-text: #333;
+            --ws-bg: #e0f2f1;
+            --ws-success: #4caf50;
+            --ws-locked: #9e9e9e;
+            --ws-border: #bbb;
+            
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 750px;
+            background: var(--ws-bg);
+            color: var(--ws-text);
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            margin: 10px;
+            user-select: none;
+            touch-action: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* View Management */
+        .ws-clone-view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+        .ws-clone-view.active { display: flex; }
+
+        /* --- LEVEL SELECT VIEW --- */
+        .ws-clone-level-map {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 25px;
+            padding: 40px;
+            max-width: 600px;
+            justify-content: center;
+        }
+
+        .ws-clone-level-node {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 4px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-size: 20px;
+            position: relative;
+        }
+        .ws-clone-level-node:hover:not(.locked) { transform: scale(1.1); }
+
+        .ws-clone-level-node.locked {
+            background: var(--ws-locked);
+            color: #fff;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .ws-clone-level-node.locked::after { content: '🔒'; font-size: 14px; position: absolute; bottom: -5px; right: -5px; background: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
+
+        .ws-clone-level-node.beaten {
+            background: var(--ws-success);
+            color: white;
+        }
+        .ws-clone-level-node.beaten::after { content: '✓'; position: absolute; top: -8px; right: -8px; background: var(--ws-accent); color: black; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white; font-weight: bold; }
+
+        .ws-clone-level-node.available {
+            background: var(--ws-primary);
+            color: white;
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.4);
+        }
+
+        /* --- GAME VIEW --- */
+        .ws-clone-game-layout {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        .ws-clone-side-nav {
+            width: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .ws-clone-main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .ws-clone-bonus-panel {
+            width: 220px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 300px;
+            border: 2px dashed var(--ws-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .ws-clone-bonus-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ws-clone-bonus-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .ws-clone-bonus-word {
+            background: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            border: 1px solid var(--ws-border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            animation: ws-pop 0.3s ease-out;
+        }
+
+        .ws-clone-grid-wrapper {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .ws-clone-grid-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .ws-clone-word-row {
+            display: flex;
+            gap: 6px;
+        }
+        .ws-clone-letter-slot {
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--ws-border);
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+        .ws-clone-letter-slot.filled {
+            background: white;
+            border-color: var(--ws-primary);
+            color: var(--ws-primary);
+            animation: ws-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Wheel */
+        .ws-clone-wheel-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+        }
+        .ws-clone-wheel-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .ws-clone-wheel-line {
+            stroke: var(--ws-primary);
+            stroke-width: 10;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            filter: drop-shadow(0 0 5px rgba(74, 144, 226, 0.5));
+        }
+        .ws-clone-letter-node {
+            position: absolute;
+            width: 54px;
+            height: 54px;
+            background: white;
+            border: 3px solid var(--ws-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+        }
+        .ws-clone-letter-node.selected {
+            background: var(--ws-primary);
+            color: white;
+            box-shadow: 0 0 20px var(--ws-primary);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .ws-clone-preview {
+            height: 45px;
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--ws-primary);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        .ws-clone-btn {
+            padding: 12px 24px;
+            background: var(--ws-primary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+        }
+        .ws-clone-btn:hover { background: var(--ws-primary-dark); transform: translateY(-2px); }
+        .ws-clone-btn:active { transform: translateY(0); }
+
+        #ws-toast {
+            position: absolute;
+            top: 40px;
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            display: none;
+            z-index: 1000;
+            font-weight: bold;
+            animation: ws-fade 1.5s forwards;
+        }
+
+        @keyframes ws-pop { 0% { transform: scale(0.7); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes ws-fade { 0% { opacity: 0; transform: translateY(-20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; } 100% { opacity: 0; } }
+
+        .ws-clone-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        .ws-clone-modal-content {
+            background: white;
+            color: var(--ws-text);
+            padding: 40px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ws-clone-root">
+        <div id="ws-toast">Already found!</div>
+
+        <!-- LEVEL SELECT VIEW -->
+        <div id="ws-view-select" class="ws-clone-view active">
+            <h1 style="margin-bottom: 30px; color: var(--ws-primary-dark); font-size: 36px;">Letter Connector</h1>
+            <div class="ws-clone-level-map" id="ws-level-map"></div>
+        </div>
+
+        <!-- GAME VIEW -->
+        <div id="ws-view-game" class="ws-clone-view">
+            <div class="ws-clone-game-layout">
+                <div class="ws-clone-side-nav">
+                    <button class="ws-clone-btn" onclick="wsGame.showView('select')">← Map</button>
+                    <div id="ws-level-indicator" style="font-weight: bold; font-size: 18px; color: #666; text-align: center;">Level 1</div>
+                </div>
+
+                <div class="ws-clone-main-area">
+                    <div class="ws-clone-preview" id="ws-preview"></div>
+                    <div class="ws-clone-grid-wrapper" id="ws-grid-wrapper"></div>
+                    <div class="ws-clone-wheel-container" id="ws-wheel">
+                        <svg class="ws-clone-wheel-svg">
+                            <polyline id="ws-line-poly" class="ws-clone-wheel-line" points="" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="ws-clone-bonus-panel">
+                    <div class="ws-clone-bonus-title">Bonus Words</div>
+                    <div class="ws-clone-bonus-list" id="ws-bonus-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ws-clone-modal" id="ws-modal">
+            <div class="ws-clone-modal-content">
+                <h2 style="font-size: 28px; margin-bottom: 20px;">Level Complete! ✨</h2>
+                <button class="ws-clone-btn" onclick="wsGame.nextLevel()">Next Level</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WS_LEVELS = [
+            { letters: 'ACT', words: ['CAT', 'ACT'], bonusWords: ['AT'] },
+            { letters: 'DOGS', words: ['DOG', 'GOD', 'SOD', 'DOGS'], bonusWords: ['DO', 'GO', 'ODS'] },
+            { letters: 'EARTH', words: ['HEART', 'HATE', 'HEAT', 'EAR', 'ART', 'TEA', 'RAT'], bonusWords: ['HER', 'ERA', 'THE', 'ARE', 'EAT', 'HAT'] },
+            { letters: 'PLANET', words: ['PLANE', 'PLATE', 'PLAN', 'PANT', 'LEAN', 'NEAT', 'TEN', 'NET', 'PLANET'], bonusWords: ['PAN', 'PAL', 'ANT', 'LET', 'ATE', 'TEA', 'ALE', 'TAN'] },
+            { letters: 'BRIGHT', words: ['BRIGHT', 'RIGHT', 'BIRTH', 'GRIT', 'BIT', 'HIT'], bonusWords: ['BIG', 'RIG', 'TIG', 'IT', 'HI'] },
+            { letters: 'SMILE', words: ['SMILE', 'SLIME', 'MILE', 'LIME', 'ISLE', 'ELMS'], bonusWords: ['LIE', 'ELM', 'SIM', 'ME', 'IS'] },
+        ];
+
+        const wsGame = {
+            currentLevelIndex: 0,
+            completedLevels: JSON.parse(localStorage.getItem('ws_clone_progress')) || [],
+            selectedIndices: [],
+            foundWords: [],
+            triedWords: new Set(),
+            bonusWordsFound: [],
+            isDragging: false,
+
+            views: { select: document.getElementById('ws-view-select'), game: document.getElementById('ws-view-game') },
+            levelMap: document.getElementById('ws-level-map'),
+            gridWrapper: document.getElementById('ws-grid-wrapper'),
+            wheelEl: document.getElementById('ws-wheel'),
+            previewEl: document.getElementById('ws-preview'),
+            bonusListEl: document.getElementById('ws-bonus-list'),
+            svgPoly: document.getElementById('ws-line-poly'),
+            toast: document.getElementById('ws-toast'),
+            modal: document.getElementById('ws-modal'),
+
+            init() {
+                this.renderLevelMap();
+                this.setupEventListeners();
+            },
+
+            showView(viewName) {
+                if (viewName === 'select') this.renderLevelMap();
+                Object.values(this.views).forEach(v => v.classList.remove('active'));
+                this.views[viewName].classList.add('active');
+                this.modal.style.display = 'none';
+            },
+
+            renderLevelMap() {
+                this.levelMap.innerHTML = '';
+                WS_LEVELS.forEach((_, i) => {
+                    const node = document.createElement('div');
+                    node.className = 'ws-clone-level-node';
+                    node.innerText = i + 1;
+
+                    const isBeaten = this.completedLevels.includes(i);
+                    const isLocked = i > 0 && !this.completedLevels.includes(i - 1);
+
+                    if (isLocked) node.classList.add('locked');
+                    else if (isBeaten) node.classList.add('beaten');
+                    else node.classList.add('available');
+
+                    if (!isLocked) node.onclick = () => this.startLevel(i);
+                    this.levelMap.appendChild(node);
+                });
+            },
+
+            startLevel(index) {
+                this.currentLevelIndex = index;
+                this.foundWords = [];
+                this.bonusWordsFound = [];
+                this.triedWords.clear();
+                this.selectedIndices = [];
+                
+                document.getElementById('ws-level-indicator').innerText = `Level ${index + 1}`;
+                this.previewEl.innerText = '';
+                this.bonusListEl.innerHTML = '';
+                
+                this.renderGrid();
+                this.renderWheel();
+                this.showView('game');
+            },
+
+            renderGrid() {
+                const level = WS_LEVELS[this.currentLevelIndex];
+                this.gridWrapper.innerHTML = '';
+                const words = level.words;
+                const numCols = words.length > 5 ? 2 : 1;
+                const wordsPerCol = Math.ceil(words.length / numCols);
+
+                for (let c = 0; c < numCols; c++) {
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'ws-clone-grid-col';
+                    const colWords = words.slice(c * wordsPerCol, (c + 1) * wordsPerCol);
+                    colWords.forEach(word => {
+                        const row = document.createElement('div');
+                        row.className = 'ws-clone-word-row';
+                        row.dataset.word = word;
+                        for (let i = 0; i < word.length; i++) {
+                            const slot = document.createElement('div');
+                            slot.className = 'ws-clone-letter-slot';
+                            row.appendChild(slot);
+                        }
+                        colDiv.appendChild(row);
+                    });
+                    this.gridWrapper.appendChild(colDiv);
+                }
+            },
+
+            renderWheel() {
+                const letters = WS_LEVELS[this.currentLevelIndex].letters;
+                this.wheelEl.querySelectorAll('.ws-clone-letter-node').forEach(n => n.remove());
+
+                const radius = 100;
+                const centerX = 130, centerY = 130;
+                const letterArray = letters.split('');
+
+                letterArray.forEach((char, i) => {
+                    const angle = (i / letterArray.length) * 2 * Math.PI - Math.PI / 2;
+                    const node = document.createElement('div');
+                    node.className = 'ws-clone-letter-node';
+                    node.innerText = char;
+                    
+                    // Store coordinates as numbers in dataset for easy retrieval
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    node.style.left = `${x}px`;
+                    node.style.top = `${y}px`;
+                    node.dataset.x = x;
+                    node.dataset.y = y;
+                    node.dataset.index = i;
+                    this.wheelEl.appendChild(node);
+                });
+            },
+
+            setupEventListeners() {
+                this.wheelEl.addEventListener('mousedown', (e) => this.handleStart(e));
+                window.addEventListener('mousemove', (e) => this.handleMove(e));
+                window.addEventListener('mouseup', () => this.handleEnd());
+
+                this.wheelEl.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.handleStart(e.touches[0]);
+                }, {passive: false});
+                window.addEventListener('touchmove', (e) => this.handleMove(e.touches[0]), {passive: false});
+                window.addEventListener('touchend', () => this.handleEnd());
+            },
+
+            handleStart(e) {
+                const node = e.target.closest('.ws-clone-letter-node');
+                if (!node) return;
+                this.isDragging = true;
+                this.selectedIndices = [parseInt(node.dataset.index)];
+                node.classList.add('selected');
+                this.updateUI();
+            },
+
+            handleMove(e) {
+                if (!this.isDragging) return;
+                const element = document.elementFromPoint(e.clientX, e.clientY);
+                const node = element?.closest('.ws-clone-letter-node');
+                if (node) {
+                    const index = parseInt(node.dataset.index);
+                    if (!this.selectedIndices.includes(index)) {
+                        this.selectedIndices.push(index);
+                        node.classList.add('selected');
+                        this.updateUI();
+                    }
+                }
+            },
+
+            handleEnd() {
+                if (!this.isDragging) return;
+                this.isDragging = false;
+                const word = this.getCurrentWord();
+                this.processWord(word);
+                
+                this.selectedIndices = [];
+                this.previewEl.innerText = '';
+                this.svgPoly.setAttribute('points', '');
+                this.wheelEl.querySelectorAll('.ws-clone-letter-node').forEach(n => n.classList.remove('selected'));
+            },
+
+            getCurrentWord() {
+                const letters = WS_LEVELS[this.currentLevelIndex].letters.split('');
+                return this.selectedIndices.map(idx => letters[idx]).join('');
+            },
+
+            updateUI() {
+                this.previewEl.innerText = this.getCurrentWord();
+                
+                // FIX: Create points string using raw numbers, NOT "px"
+                const points = this.selectedIndices.map(idx => {
+                    const node = this.wheelEl.querySelector(`.ws-clone-letter-node[data-index="${idx}"]`);
+                    return `${node.dataset.x},${node.dataset.y}`;
+                });
+                this.svgPoly.setAttribute('points', points.join(' '));
+            },
+
+            processWord(word) {
+                if (!word) return;
+                const level = WS_LEVELS[this.currentLevelIndex];
+
+                if (this.triedWords.has(word)) {
+                    this.showToast("Already found!");
+                    return;
+                }
+
+                if (level.words.includes(word)) {
+                    this.foundWords.push(word);
+                    this.markGrid(word);
+                    this.triedWords.add(word);
+                    this.checkWin();
+                } else if (level.bonusWords.includes(word)) {
+                    this.bonusWordsFound.push(word);
+                    this.addBonusUI(word);
+                    this.triedWords.add(word);
+                }
+            },
+
+            markGrid(word) {
+                this.gridWrapper.querySelectorAll('.ws-clone-word-row').forEach(row => {
+                    if (row.dataset.word === word) {
+                        const slots = row.querySelectorAll('.ws-clone-letter-slot');
+                        for (let i = 0; i < word.length; i++) {
+                            slots[i].innerText = word[i];
+                            slots[i].classList.add('filled');
+                        }
+                    }
+                });
+            },
+
+            addBonusUI(word) {
+                const badge = document.createElement('div');
+                badge.className = 'ws-clone-bonus-word';
+                badge.innerText = word;
+                this.bonusListEl.appendChild(badge);
+            },
+
+            showToast(msg) {
+                this.toast.innerText = msg;
+                this.toast.style.display = 'block';
+                setTimeout(() => { this.toast.style.display = 'none'; }, 1500);
+            },
+
+            checkWin() {
+                const level = WS_LEVELS[this.currentLevelIndex];
+                if (this.foundWords.length === level.words.length) {
+                    // Save immediately
+                    if (!this.completedLevels.includes(this.currentLevelIndex)) {
+                        this.completedLevels.push(this.currentLevelIndex);
+                        localStorage.setItem('ws_clone_progress', JSON.stringify(this.completedLevels));
+                    }
+                    setTimeout(() => { this.modal.style.display = 'flex'; }, 600);
+                }
+            },
+
+            nextLevel() {
+                const nextIdx = this.currentLevelIndex + 1;
+                if (nextIdx < WS_LEVELS.length) {
+                    this.startLevel(nextIdx);
+                } else {
+                    this.showView('select');
+                }
+            }
+        };
+
+        wsGame.init();
+    </script>
+</body>
+</html>
