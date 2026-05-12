@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEX//PLAGUE</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html, body {
+  width:100%; height:100%; background:#06080e;
+  overflow-y:auto; overflow-x:hidden;
+  font-family:'Share Tech Mono', monospace;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse 55% 45% at 20% 15%, rgba(0,255,120,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 85% 80%, rgba(255,40,80,0.05) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+body::after {
+  content:''; position:fixed; inset:0;
+  background:repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
+  pointer-events:none; z-index:0; opacity:0.4;
+}
+
+#g {
+  --v:#00ff88; --i:#ff3355; --gold:#ffd166; --b:#22ccff;
+  --dead:#7a4060; --sym:#ff9933;
+  --t:#c8dff0; --d:#5a7898;
+  --gv:0 0 12px #00ff8866; --gi:0 0 12px #ff335566;
+  position:relative; width:100%; min-height:300vh; z-index:1;
+}
+#wrap {
+  position:sticky; top:0; width:100%; height:100vh;
+  overflow:hidden; display:flex; flex-direction:column; z-index:2;
+}
+
+/* ── Header ── */
+#hdr {
+  flex-shrink:0; display:flex; align-items:center;
+  padding:7px 0 6px;
+  border-bottom:1px solid rgba(0,255,136,0.12);
+  background:rgba(3,5,10,0.99); min-height:50px;
+}
+#hdr-left {
+  display:flex; align-items:center; padding-left:14px;
+}
+#brand { display:flex; flex-direction:column; gap:1px; }
+#logo {
+  font-family:'Exo 2',sans-serif; font-size:15px; font-weight:900;
+  letter-spacing:0.1em; color:var(--v); text-shadow:var(--gv); line-height:1;
+}
+#logo em { color:var(--b); font-style:normal; }
+#tag { font-size:8px; letter-spacing:0.15em; color:var(--d); text-transform:uppercase; }
+#rnd-wrap {
+  display:flex; flex-direction:column; align-items:center;
+  padding:0 20px; border-left:1px solid rgba(255,255,255,0.06); margin-left:16px;
+}
+#hdr-mid {
+  display:flex; gap:14px; align-items:center; flex:1; justify-content:center;
+}
+.hstat { display:flex; flex-direction:column; align-items:center; gap:0; }
+.hl { font-size:8px; letter-spacing:0.13em; text-transform:uppercase; color:var(--d); white-space:nowrap; }
+.hv { font-family:'Exo 2',sans-serif; font-size:19px; font-weight:700; line-height:1.1; }
+.cv{color:var(--v);text-shadow:var(--gv);}
+.ci{color:var(--i);text-shadow:var(--gi);}
+.cg{color:var(--gold);text-shadow:0 0 8px #ffd16644;}
+.cb{color:var(--b);text-shadow:0 0 8px #22ccff44;}
+.ct{color:var(--t);}
+.cd{color:var(--dead);}
+
+/* Cure bar */
+#cure-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:90px; }
+#cure-lbl { font-size:8px; letter-spacing:0.13em; text-transform:uppercase; color:#ff7088; }
+#cure-bg { width:88px; height:5px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; border:1px solid rgba(255,50,80,0.16); }
+#cure-fill { height:100%; width:0%; border-radius:3px; background:linear-gradient(to right,#ff7088,#ff3355); box-shadow:0 0 6px #ff335566; transition:width 0.5s ease; }
+#cure-val { font-size:9px; color:#ff7088; letter-spacing:0.05em; }
+
+/* Symptom bar (derived from mutations) */
+#sym-wrap { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:90px; }
+#sym-lbl { font-size:8px; letter-spacing:0.13em; text-transform:uppercase; color:var(--sym); }
+#sym-bg { width:88px; height:5px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; border:1px solid rgba(255,153,51,0.16); }
+#sym-fill { height:100%; width:0%; border-radius:3px; background:linear-gradient(to right,#ff9933,#ff5500); box-shadow:0 0 6px #ff993344; transition:width 0.4s ease; }
+#sym-val { font-size:9px; color:var(--sym); letter-spacing:0.05em; }
+
+#hdr-right {
+  display:flex; align-items:center; padding-right:14px;
+}
+#pts-wrap {
+  display:flex; flex-direction:column; align-items:center;
+  padding:0 20px; border-right:1px solid rgba(255,255,255,0.06); margin-right:16px;
+}
+.hb {
+  font-family:'Share Tech Mono',monospace; font-size:9px; letter-spacing:0.09em;
+  text-transform:uppercase; padding:5px 12px; border:1px solid var(--d);
+  background:rgba(0,0,0,0.5); color:var(--t); cursor:pointer;
+  transition:all 0.15s; border-radius:2px; margin-left:8px;
+}
+.hb:hover { border-color:var(--v); color:var(--v); box-shadow:var(--gv); }
+
+/* ── Main ── */
+#main { flex:1; display:flex; overflow:hidden; min-height:0; position:relative; }
+#area { flex:1; position:relative; overflow:hidden; min-width:0; }
+#cv { display:block; width:100%; height:100%; cursor:pointer; }
+#flash { position:absolute; inset:0; pointer-events:none; z-index:25; opacity:0; transition:opacity 0.12s; }
+
+#phase-lbl {
+  position:absolute; top:9px; left:50%; transform:translateX(-50%);
+  font-size:9px; letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--d); pointer-events:none; z-index:10;
+  background:rgba(3,5,10,0.85); padding:3px 10px; border-radius:2px;
+  border:1px solid rgba(255,255,255,0.05); white-space:nowrap;
+}
+/* Turn indicator */
+#turn-indicator {
+  position:absolute; bottom:50px; left:50%; transform:translateX(-50%);
+  font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--gold); pointer-events:none; z-index:10;
+  background:rgba(3,5,10,0.9); padding:4px 14px; border-radius:2px;
+  border:1px solid rgba(255,209,102,0.25); white-space:nowrap;
+  transition:opacity 0.3s;
+}
+
+/* Log */
+#log {
+  position:absolute; bottom:10px; left:10px; width:230px;
+  z-index:10; pointer-events:none; display:flex; flex-direction:column; gap:1px;
+}
+.le {
+  font-size:10px; letter-spacing:0.03em; line-height:1.55;
+  animation:lfade 0.2s ease; background:rgba(2,4,8,0.84);
+  border-radius:2px; padding:2px 6px;
+}
+.lv{color:#00ff88aa;} .li{color:#ff3355aa;}
+.lg{color:#ffd166aa;} .lb{color:#22ccffaa;}
+.ls{color:#ff9933aa;} .ld{color:#9966aaaa;}
+@keyframes lfade{from{opacity:0;transform:translateY(3px)}}
+
+/* Notify */
+#notify {
+  position:absolute; top:12px; left:50%; transform:translateX(-50%);
+  z-index:20; pointer-events:none; text-align:center; white-space:nowrap;
+}
+.nm {
+  font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:4px 12px; border-radius:2px; margin-bottom:3px;
+  animation:npop 3.2s ease forwards; display:block;
+}
+.nv{background:rgba(0,255,136,0.13);border:1px solid rgba(0,255,136,0.38);color:var(--v);}
+.ni{background:rgba(255,40,80,0.13);border:1px solid rgba(255,40,80,0.38);color:var(--i);}
+.ng{background:rgba(255,209,102,0.13);border:1px solid rgba(255,209,102,0.38);color:var(--gold);}
+.ns{background:rgba(255,153,51,0.13);border:1px solid rgba(255,153,51,0.38);color:var(--sym);}
+@keyframes npop{0%{opacity:0;transform:translateY(-5px)}8%{opacity:1;transform:translateY(0)}75%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
+
+/* ── Right panel ── */
+#side {
+  width:210px; flex-shrink:0; background:rgba(3,6,12,0.99);
+  border-left:1px solid rgba(0,255,136,0.08);
+  display:flex; flex-direction:column; overflow-y:auto; overflow-x:visible; z-index:10;
+  /* must be overflow-x:visible so tooltips can escape */
+}
+.box { border-bottom:1px solid rgba(0,255,136,0.07); padding:10px 11px 9px; flex-shrink:0; }
+.btitle {
+  font-size:9px; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--v); margin-bottom:8px; display:flex; align-items:center; gap:5px;
+  text-shadow:var(--gv);
+}
+.btitle::before { content:''; display:block; width:10px; height:1px; background:var(--v); }
+
+/* Legend */
+.lr { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--t); margin-bottom:4px; }
+.sw { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+.sw-v{background:var(--v);box-shadow:0 0 5px #00ff8866;}
+.sw-s{background:var(--sym);box-shadow:0 0 5px #ff993366;}
+.sw-d{background:var(--dead);box-shadow:0 0 5px #7a406066;}
+.sw-n{background:#1a2535;border:1px solid rgba(40,70,110,0.6);}
+.sw-i{background:var(--i);box-shadow:0 0 5px #ff335566;}
+
+/* Mutation buttons */
+.mut-wrap { position:relative; margin-bottom:4px; }
+
+.mut-btn {
+  width:100%; font-family:'Share Tech Mono',monospace; font-size:10px;
+  letter-spacing:0.04em; text-transform:uppercase; padding:7px 9px;
+  border:1px solid var(--d); background:rgba(0,255,136,0.03); color:var(--t);
+  cursor:pointer; text-align:left; transition:all 0.15s; border-radius:2px;
+  display:flex; justify-content:space-between; align-items:center;
+  /* No inline onclick — events attached in JS */
+}
+.mut-btn:hover:not([disabled]):not(.maxed) {
+  border-color:var(--v); color:var(--v); background:rgba(0,255,136,0.09); box-shadow:var(--gv);
+}
+.mut-btn[disabled] { opacity:0.32; cursor:not-allowed; }
+.mut-btn.maxed { border-color:rgba(0,255,136,0.28); color:var(--v); opacity:0.55; cursor:default; pointer-events:none; }
+.mut-btn.processing { opacity:0.25; cursor:not-allowed; pointer-events:none; }
+.mcost { font-size:11px; color:var(--gold); flex-shrink:0; font-family:'Share Tech Mono',monospace; text-shadow:0 0 8px #ffd16644; }
+
+.lpips { display:flex; gap:3px; margin-bottom:5px; margin-top:2px; }
+.lpip { width:13px; height:3px; border-radius:1px; background:rgba(255,255,255,0.07); }
+.lpip.on { background:var(--v); box-shadow:0 0 4px #00ff8866; }
+
+/* Symptom effect tag */
+.sym-tag {
+  font-size:8px; color:var(--sym); letter-spacing:0.06em;
+  margin-bottom:5px; padding:2px 5px;
+  background:rgba(255,153,51,0.08); border-left:2px solid rgba(255,153,51,0.4);
+  border-radius:1px; line-height:1.5;
+}
+
+/* ── Tooltip: absolutely positioned to left of panel, using JS ── */
+.mut-tooltip {
+  position:fixed;
+  width:182px;
+  background:rgba(2,4,12,0.98);
+  border:1px solid rgba(0,255,136,0.3);
+  box-shadow:var(--gv);
+  border-radius:3px; padding:9px 10px;
+  font-size:10px; color:var(--t); line-height:1.7; letter-spacing:0.02em;
+  pointer-events:none; z-index:9999;
+  display:none;
+}
+.mut-wrap:hover .mut-tooltip { display:block; }
+
+/* How to play */
+.how { font-size:10px; color:var(--t); line-height:1.9; letter-spacing:0.02em; }
+.how span { display:block; margin-bottom:2px; }
+
+/* Modal */
+#overlay {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  z-index:30; pointer-events:none; background:rgba(0,0,0,0.55);
+}
+#modal {
+  background:rgba(3,6,12,0.99); border:1px solid var(--v); box-shadow:var(--gv);
+  padding:26px 32px; text-align:center; max-width:400px;
+  pointer-events:all; display:none; border-radius:3px;
+}
+#modal.lose{border-color:var(--i);box-shadow:var(--gi);}
+#m-eye{font-size:9px;letter-spacing:0.22em;color:var(--d);margin-bottom:7px;text-transform:uppercase;}
+#m-ttl{font-family:'Exo 2',sans-serif;font-size:25px;font-weight:900;color:var(--v);text-shadow:var(--gv);margin-bottom:7px;line-height:1.1;}
+#modal.lose #m-ttl{color:var(--i);text-shadow:var(--gi);}
+#m-sub{font-size:11px;color:var(--t);margin-bottom:20px;line-height:1.75;}
+.mbtn{
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:0.12em;
+  text-transform:uppercase;padding:9px 22px;border:1px solid var(--v);
+  background:rgba(0,255,136,0.08);color:var(--v);cursor:pointer;
+  transition:all 0.15s;box-shadow:var(--gv);border-radius:2px;
+}
+.mbtn:hover{background:rgba(0,255,136,0.16);}
+
+@keyframes cpulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.cdanger{animation:cpulse 0.7s infinite;}
+@keyframes turnpulse{0%,100%{opacity:1}50%{opacity:0.6}}
+</style>
+</head>
+<body>
+<div id="g">
+<div id="wrap">
+
+<!-- Header -->
+<div id="hdr">
+  <div id="hdr-left">
+    <div id="brand">
+      <div id="logo">HEX<em>//</em>PLAGUE</div>
+      <div id="tag">Infection Protocol</div>
+    </div>
+    <div id="rnd-wrap">
+      <div class="hl">Round</div>
+      <div class="hv cg" id="s-rnd">0</div>
+    </div>
+  </div>
+
+  <div id="hdr-mid">
+    <div class="hstat"><div class="hl">Infected</div><div class="hv cv" id="s-inf">0</div></div>
+    <div class="hstat"><div class="hl">Immune</div><div class="hv ci" id="s-imm">0</div></div>
+    <div class="hstat"><div class="hl">Dead</div><div class="hv cd" id="s-dead">0</div></div>
+    <div class="hstat"><div class="hl">Healthy</div><div class="hv ct" id="s-heal">—</div></div>
+    <div id="cure-wrap">
+      <div id="cure-lbl">☣ Cure</div>
+      <div id="cure-bg"><div id="cure-fill"></div></div>
+      <div id="cure-val">0%</div>
+    </div>
+    <div id="sym-wrap">
+      <div id="sym-lbl">⚠ Symptoms</div>
+      <div id="sym-bg"><div id="sym-fill"></div></div>
+      <div id="sym-val">None</div>
+    </div>
+  </div>
+
+  <div id="hdr-right">
+    <div id="pts-wrap">
+      <div class="hl">DNA Points</div>
+      <div class="hv cb" id="s-pts">0</div>
+    </div>
+    <button class="hb" id="btn-new">↺ New</button>
+    <button class="hb" id="btn-diff">⬥ Normal</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+  <div id="area">
+    <canvas id="cv"></canvas>
+    <div id="flash"></div>
+    <div id="phase-lbl">Dormant</div>
+    <div id="turn-indicator">Your Turn — Click a cell to infect</div>
+    <div id="notify"></div>
+    <div id="log"></div>
+
+    <div id="overlay">
+      <div id="modal">
+        <div id="m-eye">HEX // PLAGUE</div>
+        <div id="m-ttl">INFECTION<br>PROTOCOL</div>
+        <div id="m-sub">
+          Infect every hex cell before scientists cure you.<br>
+          <span style="color:#00ff88">Click an adjacent cell</span> to infect it and end your turn.<br>
+          Spend <span style="color:#22ccff">DNA Points</span> on Mutations between turns.<br>
+          Mutations cause <span style="color:#ff9933">symptoms</span> that boost spread but risk detection.
+        </div>
+        <button class="mbtn" id="btn-start">▶ BEGIN INFECTION</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div id="side">
+    <div class="box">
+      <div class="btitle">Legend</div>
+      <div class="lr"><div class="sw sw-v"></div>Infected</div>
+      <div class="lr"><div class="sw sw-s"></div>Symptomatic</div>
+      <div class="lr"><div class="sw sw-d"></div>Dead Cell</div>
+      <div class="lr"><div class="sw sw-n"></div>Healthy</div>
+      <div class="lr"><div class="sw sw-i"></div>Immune</div>
+    </div>
+
+    <div class="box">
+      <div class="btitle">Mutations</div>
+      <div id="mut-list"></div>
+    </div>
+
+    <div class="box" style="flex:1">
+      <div class="btitle" style="color:var(--b)">How to Play</div>
+      <div class="how">
+        <span>Click a <span style="color:var(--v)">glowing cell</span> to infect it. This ends your turn.</span>
+        <span>Mutations spread via passive effects — they don't end your turn.</span>
+        <span>Spend <span style="color:var(--b)">DNA pts</span> on mutations any time between turns.</span>
+        <span>Mutations cause <span style="color:var(--sym)">symptoms</span> — raising detection risk but boosting spread.</span>
+        <span>The <span style="color:var(--i)">cure</span> rolls back infection when complete.</span>
+        <span>Hover mutations for details.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /wrap -->
+</div><!-- /g -->
+
+<script>
+(function () {
+'use strict';
+
+/* ═══════════════════════════════════════════
+   DIFFICULTY
+═══════════════════════════════════════════ */
+const DIFFS = [
+  { label:'Easy',
+    detectThresh:0.28, cureBase:0.008, curePerImm:0.00018, cureDeadMod:0.35,
+    abSpread:0.08, abNew:0.004, rollRate:0.03, initImm:0.0 },
+  { label:'Normal',
+    detectThresh:0.20, cureBase:0.013, curePerImm:0.00035, cureDeadMod:0.40,
+    abSpread:0.13, abNew:0.009, rollRate:0.050, initImm:0.006 },
+  { label:'Hard',
+    detectThresh:0.14, cureBase:0.020, curePerImm:0.00060, cureDeadMod:0.45,
+    abSpread:0.20, abNew:0.016, rollRate:0.075, initImm:0.018 },
+  { label:'Lethal',
+    detectThresh:0.09, cureBase:0.028, curePerImm:0.00090, cureDeadMod:0.50,
+    abSpread:0.28, abNew:0.026, rollRate:0.105, initImm:0.032 },
+];
+
+/* ═══════════════════════════════════════════
+   MUTATIONS
+   Each mutation has:
+     - gameplay effects (spread, resistance, etc.)
+     - symptom: the biological side-effect (name + visibility cost)
+     - tooltip shown on hover
+═══════════════════════════════════════════ */
+const MUTS = {
+  infectivity: {
+    label:'🧬 Infectivity', max:5, costs:[2,3,4,5,6],
+    symptom: { name:'Runny nose & mild cough', visibility:0.010 },
+    desc:'Core spread enhancement. Each level lets you passively infect more adjacent healthy cells each round. Causes mild respiratory symptoms that slightly raise detection risk.',
+  },
+  stealth: {
+    label:'👁 Stealth', max:4, costs:[3,4,6,8],
+    symptom: { name:'Asymptomatic (hidden)', visibility:-0.008 },
+    desc:'The virus suppresses its own symptoms. Raises detection threshold by 4% per level and reduces cure speed by 18%. Negative symptom visibility — actually helps you hide.',
+  },
+  sporeBurst: {
+    label:'🌀 Spore Burst', max:3, costs:[5,7,10],
+    symptom: { name:'Red pustular sores on skin', visibility:0.035 },
+    desc:'Infected cells release airborne spores. Each round: 18%/34%/50% chance to infect a random non-adjacent healthy cell. Causes visible, alarming skin lesions — high detection risk.',
+  },
+  hemorrhagic: {
+    label:'🩸 Hemorrhagic', max:3, costs:[6,8,11],
+    symptom: { name:'Internal bleeding & bruising', visibility:0.055 },
+    desc:'The virus attacks blood vessels, dramatically boosting spread from symptomatic cells. Cells may also die — dead cells slow the cure but block your network. Extremely visible symptoms.',
+  },
+  hardiness: {
+    label:'💀 Hardiness', max:3, costs:[6,9,12],
+    symptom: { name:'Fever, chills, fatigue', visibility:0.018 },
+    desc:'Strengthens the virus against the cure. Slows rollback rate by 20% per level and gives 15%/30%/45% chance to skip rollback ticks. Causes flu-like symptoms with moderate visibility.',
+  },
+  reanimation: {
+    label:'♻ Reanimation', max:2, costs:[8,13],
+    symptom: { name:'Necrotic tissue reactivation', visibility:0.028 },
+    desc:'Dead cells reanimate as infected cells (10%/20% chance per round). Restores lost spread fronts. Causes visible post-mortem cellular changes — scientists find this alarming.',
+  },
+  symbiosis: {
+    label:'🤝 Symbiosis', max:3, costs:[5,8,12],
+    symptom: { name:'Skin discolouration, mild rash', visibility:0.014 },
+    desc:'The virus learns to convert immune cells back to healthy before re-infecting them. 8%/16%/24% chance per adjacent immune cell per round. Causes distinctive but non-severe skin changes.',
+  },
+  resistance: {
+    label:'🛡 Drug Resist.', max:4, costs:[4,5,7,9],
+    symptom: { name:'Reduced fever response', visibility:0.006 },
+    desc:'The virus adapts to antiviral treatments. Reduces immune cell spread chance by 20% per level. Minimal symptom profile — the virus becomes quieter as it resists treatment.',
+  },
+};
+
+/* ═══════════════════════════════════════════
+   GRID SETUP
+═══════════════════════════════════════════ */
+const RADIUS = 7;
+const DIRS   = [[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+const hk     = (q, r) => q + ',' + r;
+
+const canvas  = document.getElementById('cv');
+const ctx     = canvas.getContext('2d');
+const area    = document.getElementById('area');
+const flashEl = document.getElementById('flash');
+
+let W = 0, H = 0, SZ = 0;
+
+function resize() {
+  W = canvas.width  = area.offsetWidth;
+  H = canvas.height = area.offsetHeight;
+  SZ = Math.min(W / ((RADIUS*2+1)*1.85), H / ((RADIUS*2+1)*1.65));
+  SZ = Math.max(SZ, 6);
+  if (S.hexes.length) layoutHexes();
+}
+window.addEventListener('resize', resize);
+
+function h2p(q, r) {
+  return { x: W/2 + SZ*Math.sqrt(3)*(q + r/2), y: H/2 + SZ*1.5*r };
+}
+function buildGrid() {
+  const hexes = [], map = {};
+  for (let q = -RADIUS; q <= RADIUS; q++)
+    for (let r = -RADIUS; r <= RADIUS; r++) {
+      if (Math.abs(q+r) > RADIUS) continue;
+      const {x,y} = h2p(q,r);
+      hexes.push({ q,r,x,y, state:'healthy', ia:0, va:0, symAge:0 });
+      map[hk(q,r)] = hexes[hexes.length-1];
+    }
+  return { hexes, map };
+}
+function layoutHexes() {
+  for (const h of S.hexes) { const p=h2p(h.q,h.r); h.x=p.x; h.y=p.y; }
+}
+function nbrs(h) {
+  return DIRS.map(([dq,dr]) => S.map[hk(h.q+dq, h.r+dr)]).filter(Boolean);
+}
+function adjOfState(states) {
+  const s = new Set();
+  for (const h of S.hexes)
+    if (h.state === 'infected' || h.state === 'symptomatic')
+      for (const n of nbrs(h))
+        if (states.includes(n.state)) s.add(n);
+  return [...s];
+}
+
+/* ═══════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════ */
+const S = {
+  hexes:[], map:{},
+  diff:1, started:false, over:false,
+  pts:0, round:0,
+  muts:{infectivity:0,stealth:0,sporeBurst:0,hemorrhagic:0,hardiness:0,reanimation:0,symbiosis:0,resistance:0},
+  detected:false, cure:0,
+  symptomVisibility:0, // net visibility from mutations
+  phase:'Dormant',
+  rollbackActive:false,
+  stalemateHistory:[],
+  processingTurn:false,  // true during round resolution
+  roundsSinceAutoEvolve:0,
+};
+let particles = [];
+let hover     = null;
+let rollbackTimer = null;
+
+/* ═══════════════════════════════════════════
+   SYMPTOM VISIBILITY — derived from mutations
+═══════════════════════════════════════════ */
+function calcVisibility() {
+  let v = 0;
+  for (const [k, mut] of Object.entries(MUTS)) {
+    const lv = S.muts[k];
+    if (lv > 0) v += mut.symptom.visibility * lv;
+  }
+  S.symptomVisibility = Math.max(0, Math.min(1, v * 3.5));
+}
+
+function symptomLabel() {
+  const v = S.symptomVisibility;
+  if (v === 0) return 'None';
+  if (v < 0.2) return 'Subclinical';
+  if (v < 0.45) return 'Mild';
+  if (v < 0.70) return 'Moderate';
+  if (v < 0.90) return 'Severe';
+  return 'Critical';
+}
+
+// Which cells should be symptomatic (visible symptoms)?
+function updateCellStates() {
+  const hasSym = S.symptomVisibility > 0.08;
+  for (const h of S.hexes) {
+    if (h.state === 'infected' && hasSym) { h.state = 'symptomatic'; h.symAge = 0; }
+    else if (h.state === 'symptomatic' && !hasSym) { h.state = 'infected'; }
+  }
+}
+
+/* ═══════════════════════════════════════════
+   DRAW
+═══════════════════════════════════════════ */
+let lastT = performance.now();
+
+function hexPoly(cx, cy, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI/180*(60*i-30);
+    i===0 ? ctx.moveTo(cx+r*Math.cos(a), cy+r*Math.sin(a))
+           : ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a));
+  }
+  ctx.closePath();
+}
+
+function drawHex(h, t, adjSet) {
+  const sz = SZ - 1.0;
+  const {x, y} = h;
+  const isAdj = adjSet.has(h);
+
+  if (h.state === 'infected') {
+    h.va = (h.va||0) + 0.016;
+    const pm = Math.sin(h.va*2 + h.q*0.5 + h.r*0.4)*0.5 + 0.5;
+    hexPoly(x,y,sz);
+    const g = ctx.createRadialGradient(x,y,0,x,y,sz);
+    g.addColorStop(0, `rgba(0,255,130,${0.50+pm*0.20})`);
+    g.addColorStop(0.6, 'rgba(0,165,60,0.22)');
+    g.addColorStop(1, 'rgba(0,50,15,0.04)');
+    ctx.fillStyle=g; ctx.fill();
+    hexPoly(x,y,sz);
+    ctx.strokeStyle=`rgba(0,255,120,${0.42+pm*0.40})`; ctx.lineWidth=1.4; ctx.stroke();
+
+  } else if (h.state === 'symptomatic') {
+    h.va = (h.va||0) + 0.020;
+    h.symAge = (h.symAge||0) + 0.030;
+    const pm = Math.sin(h.va*2.5 + h.q*0.5 + h.r*0.4)*0.5 + 0.5;
+    const sp = Math.sin(h.symAge*4)*0.5 + 0.5;
+    hexPoly(x,y,sz*(1+sp*0.025));
+    const g = ctx.createRadialGradient(x,y,0,x,y,sz);
+    g.addColorStop(0, `rgba(255,155,18,${0.55+pm*0.20})`);
+    g.addColorStop(0.4, `rgba(0,255,100,${0.28+sp*0.14})`);
+    g.addColorStop(1, 'rgba(0,40,10,0.03)');
+    ctx.fillStyle=g; ctx.fill();
+    hexPoly(x,y,sz);
+    ctx.strokeStyle=`rgba(255,145,18,${0.50+sp*0.30})`; ctx.lineWidth=1.8; ctx.stroke();
+
+  } else if (h.state === 'dead') {
+    hexPoly(x,y,sz*0.82);
+    const g = ctx.createRadialGradient(x,y,0,x,y,sz*0.82);
+    g.addColorStop(0,'rgba(100,50,80,0.52)');
+    g.addColorStop(0.7,'rgba(55,22,40,0.22)');
+    g.addColorStop(1,'rgba(18,4,10,0.04)');
+    ctx.fillStyle=g; ctx.fill();
+    hexPoly(x,y,sz*0.82);
+    ctx.strokeStyle='rgba(85,38,58,0.38)'; ctx.lineWidth=1; ctx.stroke();
+    const s2 = sz*0.28;
+    ctx.beginPath();
+    ctx.moveTo(x-s2,y-s2); ctx.lineTo(x+s2,y+s2);
+    ctx.moveTo(x+s2,y-s2); ctx.lineTo(x-s2,y+s2);
+    ctx.strokeStyle='rgba(110,55,80,0.45)'; ctx.lineWidth=1.2; ctx.stroke();
+
+  } else if (h.state === 'immune') {
+    h.ia = (h.ia||0) + 0.016;
+    const pm = Math.sin(h.ia)*0.5 + 0.5;
+    hexPoly(x,y,sz);
+    const g = ctx.createRadialGradient(x,y,0,x,y,sz);
+    g.addColorStop(0, `rgba(255,50,80,${0.38+pm*0.10})`);
+    g.addColorStop(0.65,'rgba(115,8,20,0.16)');
+    g.addColorStop(1,'rgba(32,0,4,0.03)');
+    ctx.fillStyle=g; ctx.fill();
+    hexPoly(x,y,sz);
+    ctx.strokeStyle=`rgba(255,50,80,${0.28+pm*0.18})`; ctx.lineWidth=1.1; ctx.stroke();
+
+  } else {
+    // healthy
+    hexPoly(x,y,sz);
+    if (isAdj && S.started && !S.over && !S.processingTurn) {
+      const p = 0.38 + 0.45*Math.sin(t*2.4 + h.q*0.8 + h.r*0.6);
+      ctx.fillStyle=`rgba(0,255,100,${0.03+p*0.07})`; ctx.fill();
+      ctx.strokeStyle=`rgba(0,255,100,${0.18+p*0.25})`; ctx.lineWidth=1.4; ctx.stroke();
+    } else {
+      ctx.fillStyle='#090f18'; ctx.fill();
+      ctx.strokeStyle='rgba(15,36,58,0.5)'; ctx.lineWidth=0.8; ctx.stroke();
+    }
+  }
+
+  // hover ring
+  if (h === hover && isAdj && h.state === 'healthy' && S.started && !S.over && !S.processingTurn) {
+    hexPoly(x,y,sz+2);
+    ctx.strokeStyle='rgba(0,255,200,0.88)'; ctx.lineWidth=3; ctx.stroke();
+  }
+}
+
+function drawParticles(dt) {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.88; p.vy*=0.88; p.life-=dt*1.4;
+    if (p.life<=0) { particles.splice(i,1); continue; }
+    const a = Math.max(0, p.life/p.ml);
+    ctx.beginPath(); ctx.arc(p.x,p.y,3.5*a,0,Math.PI*2);
+    ctx.fillStyle = p.col + Math.round(a*255).toString(16).padStart(2,'0');
+    ctx.fill();
+  }
+}
+
+function frame() {
+  const now = performance.now(), dt = Math.min((now-lastT)/1000, 0.05); lastT = now;
+  const t = now/1000;
+  ctx.fillStyle='rgba(6,8,14,0.97)'; ctx.fillRect(0,0,W,H);
+  const adjSet = new Set(S.started && !S.over && !S.processingTurn ? adjOfState(['healthy']) : []);
+  for (const h of S.hexes) drawHex(h,t,adjSet);
+  drawParticles(dt);
+  updateHUD();
+  requestAnimationFrame(frame);
+}
+
+/* ═══════════════════════════════════════════
+   COUNTS
+═══════════════════════════════════════════ */
+function counts() {
+  let inf=0, sym=0, dead=0, imm=0, heal=0;
+  for (const h of S.hexes) {
+    if      (h.state==='infected')    inf++;
+    else if (h.state==='symptomatic') sym++;
+    else if (h.state==='dead')        dead++;
+    else if (h.state==='immune')      imm++;
+    else                               heal++;
+  }
+  return { inf, sym, dead, imm, heal, total:S.hexes.length, infected:inf+sym };
+}
+
+/* ═══════════════════════════════════════════
+   HUD
+═══════════════════════════════════════════ */
+function updateHUD() {
+  const c = counts();
+  document.getElementById('s-inf').textContent  = c.infected;
+  document.getElementById('s-imm').textContent  = c.imm;
+  document.getElementById('s-dead').textContent = c.dead;
+  document.getElementById('s-heal').textContent = c.heal;
+  document.getElementById('s-rnd').textContent  = S.round;
+  document.getElementById('s-pts').textContent  = S.pts;
+
+  const cpct = Math.round(S.cure*100);
+  document.getElementById('cure-fill').style.width = cpct+'%';
+  document.getElementById('cure-val').textContent  = cpct+'%';
+  document.getElementById('cure-wrap').classList.toggle('cdanger', S.cure>0.72);
+
+  const spct = Math.round(S.symptomVisibility*100);
+  document.getElementById('sym-fill').style.width = spct+'%';
+  document.getElementById('sym-val').textContent   = symptomLabel();
+  document.getElementById('phase-lbl').textContent = S.phase;
+
+  // Turn indicator
+  const ti = document.getElementById('turn-indicator');
+  if (!S.started || S.over) {
+    ti.style.opacity='0';
+  } else if (S.processingTurn) {
+    ti.style.opacity='1';
+    ti.textContent='Processing Round…';
+    ti.style.color='var(--gold)';
+  } else {
+    ti.style.opacity='1';
+    ti.textContent='Your Turn — Click a cell to infect';
+    ti.style.color='var(--v)';
+  }
+
+  rebuildMutUI();
+}
+
+/* ═══════════════════════════════════════════
+   MUTATION UI — rebuilt each frame only when needed
+═══════════════════════════════════════════ */
+let _lastUIPts=-1, _lastUIOver=null, _lastUIProc=null;
+function rebuildMutUI() {
+  if (_lastUIPts===S.pts && _lastUIOver===S.over && _lastUIProc===S.processingTurn) return;
+  _lastUIPts=S.pts; _lastUIOver=S.over; _lastUIProc=S.processingTurn;
+  buildMutUI();
+}
+
+function buildMutUI() {
+  const el = document.getElementById('mut-list');
+  el.innerHTML = '';
+
+  for (const [k, mut] of Object.entries(MUTS)) {
+    const lv     = S.muts[k];
+    const isMax  = lv >= mut.max;
+    const cost   = isMax ? 0 : mut.costs[lv];
+    const canBuy = !isMax && S.pts >= cost && S.started && !S.over && !S.processingTurn;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'mut-wrap';
+
+    // Button
+    const btn = document.createElement('button');
+    btn.className = 'mut-btn' + (isMax ? ' maxed' : '') + (S.processingTurn ? ' processing' : '');
+    if (!canBuy && !isMax) btn.setAttribute('disabled','');
+    btn.innerHTML = `<span>${mut.label}</span><span class="mcost">${isMax ? 'MAX' : cost}</span>`;
+
+    // Click handler attached via JS — no inline onclick
+    if (canBuy) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        buyMutation(k);
+      });
+    }
+    wrap.appendChild(btn);
+
+    // Pips
+    const pips = document.createElement('div');
+    pips.className = 'lpips';
+    for (let i = 0; i < mut.max; i++) {
+      const p = document.createElement('div');
+      p.className = 'lpip' + (i < lv ? ' on' : '');
+      pips.appendChild(p);
+    }
+    wrap.appendChild(pips);
+
+    // Symptom tag
+    if (lv > 0) {
+      const tag = document.createElement('div');
+      tag.className = 'sym-tag';
+      const visSign = mut.symptom.visibility < 0 ? '▼' : '▲';
+      tag.textContent = `⚠ ${mut.symptom.name} (${visSign} visibility)`;
+      wrap.appendChild(tag);
+    }
+
+    // Tooltip — position updated on mouseenter via JS
+    const tt = document.createElement('div');
+    tt.className = 'mut-tooltip';
+    tt.textContent = mut.desc;
+    wrap.appendChild(tt);
+
+    // Position tooltip on hover using getBoundingClientRect
+    btn.addEventListener('mouseenter', () => {
+      const rect = btn.getBoundingClientRect();
+      const top  = Math.max(4, rect.top + rect.height/2 - 50);
+      tt.style.top  = top + 'px';
+      tt.style.right = (window.innerWidth - rect.left + 8) + 'px';
+      tt.style.left  = 'auto';
+    });
+
+    el.appendChild(wrap);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   LOG / NOTIFY / PFX
+═══════════════════════════════════════════ */
+const logEl = document.getElementById('log');
+function log(msg, cls='') {
+  const d = document.createElement('div');
+  d.className = 'le ' + cls; d.textContent = msg;
+  logEl.appendChild(d);
+  while (logEl.children.length > 9) logEl.removeChild(logEl.firstChild);
+}
+const notEl = document.getElementById('notify');
+function notify(msg, cls='ng') {
+  const d = document.createElement('div');
+  d.className = 'nm ' + cls; d.textContent = msg;
+  notEl.appendChild(d);
+  setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 3400);
+}
+function pfx(x, y, col, n=5) {
+  for (let i=0;i<n;i++) {
+    const a=Math.random()*Math.PI*2, s=28+Math.random()*70;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.65,ml:0.65,col});
+  }
+}
+function doFlash(col) {
+  flashEl.style.background=col; flashEl.style.opacity='1';
+  setTimeout(()=>flashEl.style.opacity='0', 150);
+}
+
+/* ═══════════════════════════════════════════
+   INFECT (low level, no turn end)
+═══════════════════════════════════════════ */
+function doInfect(h) {
+  if (h.state !== 'healthy') return false;
+  const hasSym = S.symptomVisibility > 0.08;
+  h.state = hasSym ? 'symptomatic' : 'infected';
+  h.va = Math.random()*Math.PI*2; h.symAge = 0;
+  pfx(h.x, h.y, '#00ff88', 4);
+  return true;
+}
+
+/* ═══════════════════════════════════════════
+   PLAYER CLICK — infects ONE cell, then ends the turn
+═══════════════════════════════════════════ */
+canvas.addEventListener('mousemove', e => {
+  if (S.processingTurn) { hover=null; return; }
+  const r = canvas.getBoundingClientRect();
+  hover = pickHex(e.clientX-r.left, e.clientY-r.top);
+  const adj = new Set(adjOfState(['healthy']));
+  canvas.style.cursor = (hover && hover.state==='healthy' && adj.has(hover) && S.started && !S.over && !S.processingTurn)
+    ? 'pointer' : 'default';
+});
+canvas.addEventListener('mouseleave', () => hover=null);
+
+canvas.addEventListener('click', e => {
+  if (!S.started || S.over || S.processingTurn) return;
+  const r = canvas.getBoundingClientRect();
+  const h = pickHex(e.clientX-r.left, e.clientY-r.top);
+  if (!h || h.state !== 'healthy') return;
+  if (!new Set(adjOfState(['healthy'])).has(h)) return;
+
+  // Infect clicked cell
+  doInfect(h);
+  log(`+ [${h.q},${h.r}] infected`, 'lv');
+
+  // This click ENDS the player's turn
+  startRoundResolution();
+});
+
+function pickHex(mx, my) {
+  let best=null, bd=Infinity;
+  for (const h of S.hexes) { const d=Math.hypot(h.x-mx,h.y-my); if(d<bd){bd=d;best=h;} }
+  return bd < SZ ? best : null;
+}
+
+/* ═══════════════════════════════════════════
+   ROUND RESOLUTION — runs after player clicks a cell
+   Mutation passive effects fire here, NOT player turn.
+═══════════════════════════════════════════ */
+function startRoundResolution() {
+  S.processingTurn = true;
+  S.round++;
+  // Small delay so the infected cell visually appears before resolution
+  setTimeout(resolveRound, 100);
+}
+
+function resolveRound() {
+  if (S.over) return;
+  const d = DIFFS[S.diff];
+
+  // ── 1. Random symptom auto-evolution (passive, from mutation side-effects) ──
+  autoEvolveSymptoms();
+
+  // ── 2. Infectivity: passive spread each round ──
+  const infLv = S.muts.infectivity;
+  if (infLv > 0) {
+    const chance = infLv * 0.10; // 10/20/30/40/50% per adj healthy cell
+    let cnt = 0;
+    for (const adj of adjOfState(['healthy'])) {
+      if (Math.random() < chance) { doInfect(adj); cnt++; }
+    }
+    if (cnt > 0) log(`🧬 Passive spread: ${cnt} cells`, 'lv');
+  }
+
+  // ── 3. Spore Burst: random jump ──
+  if (S.muts.sporeBurst > 0) {
+    const adjSet = new Set(adjOfState(['healthy']));
+    const nonAdj = S.hexes.filter(h => h.state==='healthy' && !adjSet.has(h));
+    const chance = S.muts.sporeBurst * 0.18;
+    if (nonAdj.length && Math.random() < chance) {
+      const t = nonAdj[Math.floor(Math.random()*nonAdj.length)];
+      doInfect(t);
+      log(`🌀 Spore jump → [${t.q},${t.r}]`, 'lb');
+    }
+  }
+
+  // ── 4. Hemorrhagic: death chance + bonus spread from symptomatic cells ──
+  if (S.muts.hemorrhagic > 0) {
+    const deathChance = S.muts.hemorrhagic * 0.012;
+    const extraSpread = S.muts.hemorrhagic * 0.08;
+    let died = 0;
+    for (const h of S.hexes) {
+      if (h.state==='symptomatic' && Math.random()<deathChance) {
+        h.state='dead'; pfx(h.x,h.y,'#7a4060',3); died++;
+      }
+    }
+    // Extra spread from symptomatic cells
+    for (const adj of adjOfState(['healthy'])) {
+      if (Math.random()<extraSpread) doInfect(adj);
+    }
+    if (died>0) log(`🩸 ${died} cell${died>1?'s':''} died from hemorrhage`, 'ld');
+  }
+
+  // ── 5. Reanimation: dead → infected ──
+  if (S.muts.reanimation > 0) {
+    const rc = S.muts.reanimation * 0.10;
+    let rev = 0;
+    for (const h of S.hexes) {
+      if (h.state==='dead' && Math.random()<rc) {
+        h.state='infected'; h.va=Math.random()*Math.PI*2; pfx(h.x,h.y,'#00ff88',3); rev++;
+      }
+    }
+    if (rev>0) log(`♻ ${rev} dead cell${rev>1?'s':''} reanimated`, 'lv');
+  }
+
+  // ── 6. Symbiosis: immune → healthy ──
+  if (S.muts.symbiosis > 0) {
+    const sc = S.muts.symbiosis * 0.08;
+    let conv = 0;
+    for (const immCell of adjOfState(['immune'])) {
+      if (Math.random()<sc) { immCell.state='healthy'; pfx(immCell.x,immCell.y,'#ffd166',3); conv++; }
+    }
+    if (conv>0) log(`🤝 ${conv} immune→healthy`, 'lg');
+  }
+
+  // ── 7. Antibody spread (only after detection) ──
+  if (S.detected) {
+    const resist = S.muts.resistance * 0.20;
+    const newImm = [];
+    for (const ic of S.hexes.filter(h=>h.state==='immune'))
+      for (const n of nbrs(ic))
+        if (n.state==='healthy' && Math.random()<d.abSpread && Math.random()>resist)
+          newImm.push(n);
+    for (const h of S.hexes)
+      if (h.state==='healthy' && Math.random()<d.abNew && Math.random()>resist*0.5)
+        newImm.push(h);
+    const uniq = [...new Set(newImm)].filter(h=>h.state==='healthy');
+    if (uniq.length) {
+      for (const h of uniq) { h.state='immune'; h.ia=Math.random()*Math.PI*2; }
+      for (const h of uniq) pfx(h.x,h.y,'#ff3355',2);
+      if (uniq.length>=2) { log(`⚡ ${uniq.length} immunised`,'li'); doFlash('rgba(255,40,80,0.04)'); }
+    }
+
+    // ── 8. Cure progress ──
+    const c = counts();
+    const stealthMod     = 1 - S.muts.stealth*0.18;
+    const deadFrac       = c.dead / c.total;
+    const cureSlowDead   = 1 - deadFrac*d.cureDeadMod;
+    const cureDelta      = (d.cureBase + d.curePerImm*c.imm) * stealthMod * cureSlowDead;
+    S.cure = Math.min(1, S.cure + cureDelta);
+    if (S.cure>=1 && !S.rollbackActive) startRollback();
+  }
+
+  // ── 9. Detection check ──
+  calcVisibility();
+  updateCellStates();
+  if (!S.detected) {
+    const c = counts();
+    const infPct  = c.infected / c.total;
+    // Visibility from symptoms lowers detection threshold
+    const visExtra = Object.entries(MUTS).reduce((acc,[k,mut])=>acc + Math.max(0,mut.symptom.visibility*S.muts[k]),0);
+    const thresh   = Math.max(0.04, d.detectThresh - visExtra + S.muts.stealth*0.04);
+    if (infPct >= thresh) {
+      S.detected = true;
+      S.phase = 'Detected — Cure Research Active';
+      notify('⚠ Outbreak detected! Cure research begun.','ni');
+      log('⚠ Scientists detected the outbreak!','li');
+      log('☣ Cure research has begun.','li');
+      doFlash('rgba(255,40,80,0.15)');
+    }
+  } else {
+    S.phase = S.rollbackActive
+      ? `☣ CURE DEPLOYED — ${Math.round(S.cure*100)}%`
+      : `Cure: ${Math.round(S.cure*100)}%`;
+  }
+
+  // ── 10. DNA income ──
+  const c2 = counts();
+  S.pts += Math.max(1, Math.floor(c2.infected / 12));
+
+  // ── 11. Stalemate check ──
+  S.stalemateHistory.push(c2.infected + c2.dead);
+  if (S.stalemateHistory.length > 30) S.stalemateHistory.shift();
+  if (S.stalemateHistory.length === 30) {
+    const mn = Math.min(...S.stalemateHistory);
+    const mx = Math.max(...S.stalemateHistory);
+    if (mx - mn <= 4) {
+      endGame(c2.infected >= c2.imm ? true : false, 'stalemate');
+      return;
+    }
+  }
+
+  // ── 12. Win/lose check ──
+  if (!checkEnd()) {
+    S.processingTurn = false; // return control to player
+  }
+}
+
+/* ═══════════════════════════════════════════
+   AUTO SYMPTOM EVOLUTION (driven by mutation side-effects)
+   Represents mutations spontaneously worsening their symptoms.
+   No cost — this happens to the player, not chosen by them.
+═══════════════════════════════════════════ */
+function autoEvolveSymptoms() {
+  S.roundsSinceAutoEvolve = (S.roundsSinceAutoEvolve||0) + 1;
+
+  // Only mutations that have visibility > 0 can worsen
+  const evolvable = Object.entries(MUTS)
+    .filter(([k, mut]) => S.muts[k] > 0 && mut.symptom.visibility > 0);
+  if (!evolvable.length) return;
+
+  const forceAt = 20;
+  const baseChance = 0.07;
+  let triggered = S.roundsSinceAutoEvolve >= forceAt || Math.random() < baseChance;
+
+  if (!triggered) return;
+  S.roundsSinceAutoEvolve = 0;
+
+  // Pick mutation with highest level (most developed = most likely to worsen)
+  evolvable.sort(([,a],[,b]) => (S.muts[b.label]||0)-(S.muts[a.label]||0));
+  const [k, mut] = evolvable[Math.floor(Math.random()*Math.min(3,evolvable.length))];
+
+  // "Worsen" = temporarily boost visibility (side-effect flare-up)
+  // We don't add a level — we just apply a detection event or nudge detection
+  const flareVis = mut.symptom.visibility * 0.5;
+  // Simulate detection nudge this round by reducing threshold temporarily
+  notify(`⚠ ${mut.label} symptoms intensified!`,'ns');
+  log(`⚠ Side-effect flare: ${mut.symptom.name}`, 'ls');
+  doFlash('rgba(255,153,51,0.10)');
+
+  // Apply: bump visibility up for this round's detection check
+  S._symptomFlare = (S._symptomFlare||0) + flareVis;
+}
+
+/* ═══════════════════════════════════════════
+   ROLLBACK
+═══════════════════════════════════════════ */
+function startRollback() {
+  if (S.rollbackActive) return;
+  S.rollbackActive = true;
+  notify('☣ CURE DEPLOYED — rolling back infection!','ni');
+  log('☣ CURE COMPLETE. Rollback in progress…','li');
+  doFlash('rgba(255,40,80,0.22)');
+  const d = DIFFS[S.diff];
+  rollbackTimer = setInterval(() => {
+    if (S.over) { clearInterval(rollbackTimer); return; }
+    const hardy = S.muts.hardiness;
+    if (Math.random() < hardy*0.15) { log('💀 Hardiness resisted rollback','lg'); return; }
+    const rate = Math.max(0.018, d.rollRate - hardy*0.02);
+    const infected = S.hexes.filter(h=>h.state==='infected'||h.state==='symptomatic');
+    if (!infected.length) { clearInterval(rollbackTimer); endGame(false,'cure'); return; }
+    const n = Math.max(1, Math.floor(infected.length*rate));
+    infected.sort(()=>Math.random()-0.5).slice(0,n).forEach(h=>{
+      h.state='immune'; h.ia=Math.random()*Math.PI*2; pfx(h.x,h.y,'#ff3355',2);
+    });
+    doFlash('rgba(255,40,80,0.04)');
+    checkEnd();
+  }, 1400);
+}
+
+/* ═══════════════════════════════════════════
+   END CHECK
+═══════════════════════════════════════════ */
+let _lec = 0;
+function checkEnd() {
+  const now = performance.now();
+  if (now-_lec<180) return false; _lec=now;
+  if (S.over) return false;
+  const c = counts();
+  if (c.heal===0 && c.imm===0) { endGame(true); return true; }
+  if (S.rollbackActive && c.infected===0) { endGame(false,'cure'); return true; }
+  const adj = adjOfState(['healthy']);
+  if (adj.length===0 && S.muts.sporeBurst===0 && c.heal>0 && S.rollbackActive) {
+    endGame(false,'surrounded'); return true;
+  }
+  return false;
+}
+
+function endGame(win, reason='') {
+  if (S.over) return;
+  S.over = true;
+  S.processingTurn = false;
+  clearInterval(rollbackTimer);
+  const c = counts();
+  const pct = Math.round(c.infected/c.total*100);
+  if (win) {
+    const sub = reason==='stalemate'
+      ? `Stalemate broken — infection dominant after ${S.round} rounds. Pts: ${S.pts}`
+      : `All cells infected in ${S.round} rounds! Pts: ${S.pts}`;
+    showModal(false,'// VICTORY','PANDEMIC<br>ACHIEVED', sub);
+    for (const h of S.hexes) if (Math.random()<0.08) pfx(h.x,h.y,'#00ff88',3);
+    S.phase = 'PANDEMIC ACHIEVED';
+  } else {
+    const subs = {
+      cure:       `Cure deployed. Infection rolled back to ${pct}%. ${S.round} rounds.`,
+      stalemate:  `Stalemate — immune dominant after ${S.round} rounds.`,
+      surrounded: `Virus contained at ${pct}%. No spread routes remain.`,
+    };
+    showModal(true,'// CONTAINED','VIRUS<br>ELIMINATED', (subs[reason]||`${S.round} rounds.`)+' Pts: '+S.pts);
+    S.phase = 'VIRUS CONTAINED';
+  }
+}
+
+/* ═══════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════ */
+function showModal(isLose, eye, ttl, sub) {
+  const m = document.getElementById('modal');
+  document.getElementById('m-eye').textContent  = eye;
+  document.getElementById('m-ttl').innerHTML    = ttl;
+  document.getElementById('m-sub').innerHTML    = sub;
+  m.className = isLose ? 'lose' : ''; m.style.display='block';
+  document.getElementById('overlay').style.pointerEvents='all';
+}
+function hideModal() {
+  document.getElementById('modal').style.display='none';
+  document.getElementById('overlay').style.pointerEvents='none';
+}
+
+/* ═══════════════════════════════════════════
+   BUY MUTATION
+═══════════════════════════════════════════ */
+function buyMutation(k) {
+  if (!S.started || S.over || S.processingTurn) return;
+  const mut = MUTS[k], lv = S.muts[k];
+  if (lv >= mut.max) return;
+  const cost = mut.costs[lv];
+  if (S.pts < cost) return;
+  S.pts -= cost;
+  S.muts[k]++;
+  calcVisibility();
+  updateCellStates();
+  notify(`↑ ${mut.label} Lv${S.muts[k]}`, 'ng');
+  log(`Mutation: ${mut.label} Lv${S.muts[k]} — ${mut.symptom.name}`, 'lg');
+  doFlash('rgba(0,255,136,0.07)');
+  _lastUIPts = -1; // force UI rebuild
+}
+
+/* ═══════════════════════════════════════════
+   NEW GAME
+═══════════════════════════════════════════ */
+function newGame() {
+  clearInterval(rollbackTimer);
+  const built = buildGrid();
+  S.hexes=built.hexes; S.map=built.map;
+  S.pts=0; S.round=0; S.over=false; S.started=true; S.processingTurn=false;
+  S.muts={infectivity:0,stealth:0,sporeBurst:0,hemorrhagic:0,hardiness:0,reanimation:0,symbiosis:0,resistance:0};
+  S.detected=false; S.cure=0; S.rollbackActive=false;
+  S.symptomVisibility=0; S.stalemateHistory=[]; S.roundsSinceAutoEvolve=0; S._symptomFlare=0;
+  S.phase='Dormant — Spread Undetected';
+  particles=[]; _lec=0; _lastUIPts=-1;
+  logEl.innerHTML='';
+  hideModal();
+  resize();
+
+  // Seed: center + 2 adjacent
+  const center = S.map['0,0'];
+  center.state='infected'; center.va=0;
+  nbrs(center).sort(()=>Math.random()-0.5).slice(0,2).forEach(n=>{n.state='infected';n.va=0;});
+
+  // Initial immune on Hard/Lethal only
+  const d = DIFFS[S.diff];
+  if (d.initImm>0) {
+    for (const h of S.hexes) {
+      if (h.state==='infected') continue;
+      const dist = Math.max(Math.abs(h.q),Math.abs(h.r),Math.abs(h.q+h.r));
+      if (dist>=5 && Math.random()<d.initImm) { h.state='immune'; h.ia=Math.random()*Math.PI*2; }
+    }
+  }
+
+  log('▶ Infection initiated. Stay hidden.','lv');
+  log(`Difficulty: ${DIFFS[S.diff].label}`,'lg');
+  log('Click a glowing cell to infect it (ends your turn).','lb');
+}
+
+/* ═══════════════════════════════════════════
+   HEADER BUTTON LISTENERS (no inline onclick)
+═══════════════════════════════════════════ */
+document.getElementById('btn-new').addEventListener('click',   () => newGame());
+document.getElementById('btn-diff').addEventListener('click',  () => {
+  S.diff = (S.diff+1) % DIFFS.length;
+  document.getElementById('btn-diff').textContent = '⬥ ' + DIFFS[S.diff].label;
+  newGame();
+});
+document.getElementById('btn-start').addEventListener('click', () => newGame());
+
+/* ═══════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════ */
+const built = buildGrid(); S.hexes=built.hexes; S.map=built.map;
+resize();
+showModal(false,'HEX // PLAGUE','INFECTION<br>PROTOCOL',
+  'Infect every hex cell before scientists cure you.<br>' +
+  'Stay <span style="color:#00ff88">hidden</span> — mutation symptoms raise detection risk.<br>' +
+  'Click an <span style="color:#00ff88">adjacent cell</span> to infect it — this ends your turn.<br>' +
+  'Spend <span style="color:#22ccff">DNA Points</span> on Mutations between turns.');
+document.getElementById('overlay').style.pointerEvents='all';
+frame();
+
+})();
+</script>
+</body>
+</html>
