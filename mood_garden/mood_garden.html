@@ -1,0 +1,366 @@
+<div id="zbg-garden-v3-container" class="zbg-weather-sun">
+    
+    <div class="zbg-cloud zbg-cloud-1"></div>
+    <div class="zbg-cloud zbg-cloud-2"></div>
+    <div class="zbg-cloud zbg-cloud-3"></div>
+
+    <div id="zbg-sky-box">
+        <h3 id="zbg-title">Mood Garden</h3>
+        <p id="zbg-subtitle">Plant thoughts. Make it rain to grow.</p>
+    </div>
+    
+    <button id="zbg-weather-btn" title="Change Weather">☀️</button>
+
+    <div id="zbg-soil-bed">
+        <div class="zbg-grass-hill"></div>
+        <div id="zbg-rain-container"></div>
+    </div>
+
+    <div id="zbg-controls">
+        <input type="text" id="zbg-input" placeholder="Type a thought..." maxlength="40">
+        <button id="zbg-plant-btn">Plant</button>
+    </div>
+
+    <style>
+        /* Container Setup & Weather Transitions */
+        #zbg-garden-v3-container {
+            width: 100%;
+            max-width: 600px;
+            height: 450px;
+            border-radius: 25px;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            border: 6px solid #ffffff;
+            box-sizing: border-box;
+            transition: background 1.5s ease;
+        }
+
+        #zbg-garden-v3-container * { box-sizing: border-box; }
+
+        /* Weather States */
+        .zbg-weather-sun { background: linear-gradient(180deg, #64B5F6 0%, #E3F2FD 100%); }
+        .zbg-weather-rain { background: linear-gradient(180deg, #78909C 0%, #CFD8DC 100%); }
+        .zbg-weather-wind { background: linear-gradient(180deg, #4DD0E1 0%, #E0F7FA 100%); }
+
+        /* Background Clouds */
+        .zbg-cloud {
+            position: absolute;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50px;
+            filter: blur(1px);
+            z-index: 1;
+            transition: background 1.5s ease, animation-duration 1s ease;
+        }
+        .zbg-cloud::after, .zbg-cloud::before {
+            content: ''; position: absolute; background: inherit; border-radius: 50%;
+        }
+
+        .zbg-weather-rain .zbg-cloud { background: rgba(144, 164, 174, 0.8); }
+        .zbg-weather-wind .zbg-cloud { animation-duration: 15s !important; } /* Clouds move faster in wind */
+
+        .zbg-cloud-1 { width: 100px; height: 40px; top: 80px; left: -120px; animation: zbg-drift 40s linear infinite; }
+        .zbg-cloud-1::after { width: 50px; height: 50px; top: -25px; left: 15px; }
+        .zbg-cloud-1::before { width: 40px; height: 40px; top: -15px; left: 50px; }
+
+        .zbg-cloud-2 { width: 80px; height: 30px; top: 150px; left: -100px; animation: zbg-drift 50s linear infinite 5s; }
+        .zbg-cloud-2::after { width: 40px; height: 40px; top: -20px; left: 10px; }
+
+        .zbg-cloud-3 { width: 120px; height: 50px; top: 100px; left: -150px; animation: zbg-drift 35s linear infinite 15s; }
+        .zbg-cloud-3::after { width: 60px; height: 60px; top: -30px; left: 20px; }
+        .zbg-cloud-3::before { width: 50px; height: 50px; top: -20px; left: 60px; }
+
+        /* UI Overlays */
+        #zbg-sky-box {
+            text-align: center;
+            padding: 15px;
+            color: #1a508b;
+            z-index: 5; /* Lowered so plants can overlap if needed */
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(4px);
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            pointer-events: none; /* Allows hovering plants underneath */
+        }
+        .zbg-weather-rain #zbg-sky-box { color: #37474F; }
+        #zbg-title { margin: 0; font-size: 1.4rem; font-weight: 800; }
+        #zbg-subtitle { margin: 3px 0 0; font-size: 0.9rem; font-weight: 500; opacity: 0.9; }
+
+        /* Soil and Grass (Fixed Gradient) */
+        #zbg-soil-bed {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 30px;
+            gap: 12px;
+            z-index: 10;
+        }
+        .zbg-grass-hill {
+            position: absolute;
+            bottom: -40px; left: -10%; width: 120%; height: 120px;
+            background: linear-gradient(to bottom, #81c784 0%, #4caf50 100%);
+            border-radius: 50% 50% 0 0;
+            z-index: -1;
+            box-shadow: inset 0 15px 20px rgba(255,255,255,0.2);
+        }
+
+        /* Weather Button */
+        #zbg-weather-btn {
+            position: absolute;
+            top: 70px; right: 15px; z-index: 20;
+            background: rgba(255,255,255,0.7);
+            border: 2px solid white; border-radius: 50%;
+            width: 45px; height: 45px;
+            cursor: pointer;
+            backdrop-filter: blur(3px);
+            transition: all 0.3s ease;
+            font-size: 22px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        #zbg-weather-btn:hover { transform: scale(1.1); background: white; }
+
+        /* Plant Styling */
+        .zbg-plant {
+            position: relative; display: flex; flex-direction: column; align-items: center;
+            transform-origin: bottom center;
+            animation: zbg-sway 4s ease-in-out infinite alternate;
+        }
+        .zbg-weather-wind .zbg-plant { animation: zbg-sway-windy 2s ease-in-out infinite alternate; }
+        
+        /* Bring plant to very front on hover to fix tooltip clipping */
+        .zbg-plant:hover { z-index: 100; animation-play-state: paused; }
+
+        .zbg-stem {
+            width: 6px;
+            background: linear-gradient(to bottom, #81C784, #4CAF50);
+            border-radius: 3px;
+            position: relative;
+            transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .zbg-flower {
+            position: relative; width: 32px; height: 32px; margin-bottom: -4px;
+            cursor: help; z-index: 2;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Petals start hidden (scale 0) */
+        .zbg-petals {
+            position: absolute; width: 100%; height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 0 0 8px inset, -5px -5px 0 #fff rgba(255,255,255,0.3), 5px 5px 0 rgba(0,0,0,0.05);
+            border: 4px solid #fff;
+            transform: scale(0);
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        /* Center starts as a green bud */
+        .zbg-flower-center {
+            position: absolute; width: 14px; height: 14px;
+            background: #81C784; /* Bud color */
+            border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border: 2px solid rgba(0,0,0,0.1);
+            transition: background 0.8s ease;
+        }
+
+        /* BLOOM STATE */
+        .zbg-bloomed .zbg-petals { transform: scale(1) rotate(15deg); }
+        .zbg-bloomed .zbg-flower-center { background: #fff9c4; /* Yellow center */ }
+        .zbg-plant:hover .zbg-flower { transform: scale(1.3); }
+
+        /* Tooltip */
+        .zbg-tooltip {
+            position: absolute; bottom: 120%;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(5px);
+            padding: 8px 12px; border-radius: 12px;
+            font-size: 13px; font-weight: 600; color: #333;
+            white-space: nowrap;
+            visibility: hidden; opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15); border: 1px solid #ddd;
+            z-index: 101; pointer-events: none;
+        }
+        .zbg-tooltip::after {
+            content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            border: 6px solid transparent; border-top-color: rgba(255,255,255,0.95);
+        }
+        .zbg-plant:hover .zbg-tooltip { visibility: visible; opacity: 1; transform: translateY(-5px); }
+
+        /* Controls UI */
+        #zbg-controls {
+            padding: 15px; background: rgba(255,255,255,0.6); backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.5);
+            display: flex; gap: 10px; z-index: 20;
+        }
+        #zbg-input {
+            flex-grow: 1; padding: 12px; border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 12px; background: rgba(255,255,255,0.7); font-size: 14px;
+        }
+        #zbg-input:focus { outline: none; border-color: #64B5F6; background: #fff; }
+        #zbg-plant-btn {
+            background: linear-gradient(135deg, #66BB6A, #43A047); color: white;
+            border: none; padding: 0 20px; border-radius: 12px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+        }
+        #zbg-plant-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 10px rgba(67,160,71,0.3); }
+
+        /* Rain Effect */
+        #zbg-rain-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 15; display: none;
+        }
+        .zbg-raindrop {
+            position: absolute; background-color: rgba(255, 255, 255, 0.6);
+            width: 2px; height: 15px; top: -20px; border-radius: 2px;
+            animation: zbg-fall linear infinite;
+        }
+
+        /* Animations */
+        @keyframes zbg-sway { 0% { transform: rotate(-3deg); } 100% { transform: rotate(3deg); } }
+        @keyframes zbg-sway-windy { 0% { transform: rotate(5deg); } 100% { transform: rotate(25deg); } }
+        @keyframes zbg-drift { from { transform: translateX(-10%); } to { transform: translateX(700px); } }
+        @keyframes zbg-fall { to { transform: translateY(500px); } }
+        @keyframes zbg-pulse-grow { 0% { filter: brightness(1); } 50% { filter: brightness(1.3); } 100% { filter: brightness(1); } }
+        
+        .zbg-growing { animation: zbg-pulse-grow 1s ease-out; }
+    </style>
+
+    <script>
+        (function() {
+            const container = document.getElementById('zbg-garden-v3-container');
+            const plantBtn = document.getElementById('zbg-plant-btn');
+            const weatherBtn = document.getElementById('zbg-weather-btn');
+            const input = document.getElementById('zbg-input');
+            const garden = document.getElementById('zbg-soil-bed');
+            const rainContainer = document.getElementById('zbg-rain-container');
+            
+            const petalColors = [
+                'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)', // Pink
+                'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)', // Purple
+                'linear-gradient(135deg, #ff9e7d 0%, #ffcc80 100%)', // Orange
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // Blue
+                'linear-gradient(135deg, #fff720 0%, #FF9800 100%)'  // Yellow/Orange
+            ];
+
+            const MAX_PLANT_HEIGHT = 140; 
+            let rainGrowthInterval = null;
+
+            // Weather System Array
+            const weathers = [
+                { id: 'sun', icon: '☀️', class: 'zbg-weather-sun' },
+                { id: 'rain', icon: '🌧️', class: 'zbg-weather-rain' },
+                { id: 'wind', icon: '💨', class: 'zbg-weather-wind' }
+            ];
+            let weatherIdx = 0;
+
+            function plantSeed() {
+                const text = input.value.trim();
+                if (!text) return;
+
+                const plant = document.createElement('div');
+                plant.className = 'zbg-plant';
+                
+                // Start small
+                const baseHeight = Math.floor(Math.random() * 20) + 30; // 30 to 50px
+                const color = petalColors[Math.floor(Math.random() * petalColors.length)];
+                const swayDelay = (Math.random() * -4).toFixed(2);
+
+                plant.style.animationDelay = `${swayDelay}s`;
+                
+                plant.innerHTML = `
+                    <div class="zbg-tooltip">${text}</div>
+                    <div class="zbg-flower">
+                        <div class="zbg-petals" style="background: ${color}"></div>
+                        <div class="zbg-flower-center"></div>
+                    </div>
+                    <div class="zbg-stem" style="height: ${baseHeight}px"></div>
+                `;
+
+                // Auto-cleanup oldest
+                if (garden.querySelectorAll('.zbg-plant').length > 8) {
+                    const oldest = garden.querySelector('.zbg-plant');
+                    oldest.remove();
+                }
+
+                garden.appendChild(plant);
+                input.value = "";
+                
+                // Pop-in
+                plant.animate([
+                    { transform: 'scale(0) translateY(20px)', opacity: 0 },
+                    { transform: 'scale(1) translateY(0)', opacity: 1 }
+                ], { duration: 500, easing: 'ease-out' });
+            }
+
+            // Weather Logic
+            function toggleWeather() {
+                weatherIdx = (weatherIdx + 1) % weathers.length;
+                const newWeather = weathers[weatherIdx];
+
+                // Update UI
+                weatherBtn.innerText = newWeather.icon;
+                container.className = newWeather.class;
+
+                // Handle Rain
+                if (newWeather.id === 'rain') {
+                    startRain();
+                } else {
+                    stopRain();
+                }
+            }
+
+            function startRain() {
+                rainContainer.style.display = 'block';
+                rainContainer.innerHTML = ''; // clear old
+                
+                // Create drops
+                for(let i=0; i<70; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'zbg-raindrop';
+                    drop.style.left = Math.random() * 100 + '%';
+                    drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+                    rainContainer.appendChild(drop);
+                }
+
+                // Grow plants periodically while raining
+                rainGrowthInterval = setInterval(() => {
+                    const plants = garden.querySelectorAll('.zbg-plant:not(.zbg-bloomed)');
+                    plants.forEach(plant => {
+                        const stem = plant.querySelector('.zbg-stem');
+                        let currentHeight = parseInt(stem.style.height);
+                        
+                        if (currentHeight < MAX_PLANT_HEIGHT) {
+                            currentHeight += 25; // Grow 25px per tick
+                            stem.style.height = Math.min(currentHeight, MAX_PLANT_HEIGHT) + 'px';
+                            plant.querySelector('.zbg-flower').classList.add('zbg-growing');
+                            setTimeout(() => plant.querySelector('.zbg-flower').classList.remove('zbg-growing'), 800);
+                        } 
+                        
+                        // Bloom Check!
+                        if (currentHeight >= MAX_PLANT_HEIGHT) {
+                            plant.classList.add('zbg-bloomed');
+                        }
+                    });
+                }, 1500); // Check growth every 1.5 seconds of rain
+            }
+
+            function stopRain() {
+                clearInterval(rainGrowthInterval);
+                rainContainer.style.display = 'none';
+            }
+
+            // Listeners
+            plantBtn.addEventListener('click', plantSeed);
+            weatherBtn.addEventListener('click', toggleWeather);
+            input.addEventListener('keypress', (e) => { if (e.key === 'Enter') plantSeed(); });
+            
+        })();
+    </script>
+</div>
