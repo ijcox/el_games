@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenFlow Sanctuary</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@1,400;1,700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --aura-1: #6366f1;
+            --aura-2: #a855f7;
+            --aura-3: #ec4899;
+        }
+
+        /* Scoped root to prevent global leakage */
+        #zenflow-sanctuary {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #050505;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            isolation: isolate; /* Create new stacking context */
+        }
+
+        #zenflow-sanctuary canvas#aura {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            filter: blur(40px);
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        #zenflow-sanctuary .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #zenflow-sanctuary .orb {
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            animation: zen-float 6s ease-in-out infinite;
+        }
+
+        @keyframes zen-float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-15px) scale(1.05); }
+        }
+
+        #zenflow-sanctuary .orb-complete {
+            animation: zen-pop 0.4s forwards;
+        }
+
+        @keyframes zen-pop {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; filter: blur(20px); }
+        }
+
+        #zenflow-sanctuary .mono { font-family: 'JetBrains Mono', monospace; }
+        #zenflow-sanctuary .serif { font-family: 'Playfair Display', serif; }
+
+        #zenflow-sanctuary input:focus { outline: none; }
+
+        /* Custom Scrollbar scoped to app */
+        #zenflow-sanctuary ::-webkit-scrollbar { width: 4px; }
+        #zenflow-sanctuary ::-webkit-scrollbar-track { background: transparent; }
+        #zenflow-sanctuary ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        
+        /* Ensure normal body is hidden if this is the full page */
+        body { margin: 0; overflow: hidden; background: #000; }
+    </style>
+</head>
+<body class="antialiased">
+    <div id="zenflow-sanctuary">
+        <!-- Generative Background -->
+        <canvas id="aura"></canvas>
+
+        <!-- UI Overlay -->
+        <main class="relative z-10 w-full h-full flex flex-col md:flex-row overflow-hidden p-6 gap-6">
+            
+            <!-- Left Sidebar: Sanctuary Controls -->
+            <section class="w-full md:w-80 flex flex-col gap-6 shrink-0">
+                <header class="glass rounded-3xl p-8 flex flex-col gap-2">
+                    <h1 class="serif italic text-4xl font-bold tracking-tight text-indigo-200">ZenFlow</h1>
+                    <p class="text-xs uppercase tracking-widest opacity-40 font-semibold">Sanctuary Alpha 1.0</p>
+                    <div id="clock" class="mono text-2xl mt-4 opacity-80">00:00:00</div>
+                </header>
+
+                <div class="glass rounded-3xl p-8 flex-1 flex flex-col gap-6 overflow-y-auto">
+                    <div>
+                        <h2 class="text-xs uppercase tracking-widest opacity-40 font-semibold mb-4">Binaural Engine</h2>
+                        <div class="flex flex-col gap-4">
+                            <button id="toggleAudio" class="w-full py-4 rounded-2xl border border-white/10 hover:bg-white/5 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                                <span id="audioStatusIcon">⏵</span>
+                                <span id="audioStatusText">Begin Resonance</span>
+                            </button>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs opacity-60">
+                                    <span>Frequency</span>
+                                    <span id="freqVal">40 Hz (Gamma)</span>
+                                </div>
+                                <input type="range" id="freqSlider" min="2" max="60" value="40" class="w-full accent-indigo-500 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-6">
+                        <h2 class="text-xs uppercase tracking-widest opacity-40 font-semibold mb-4">Aura Intensity</h2>
+                        <input type="range" id="auraSlider" min="1" max="10" value="5" class="w-full accent-pink-500 opacity-50 hover:opacity-100 transition-opacity cursor-pointer">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Task Cosmos -->
+            <section class="flex-1 glass rounded-[2.5rem] relative overflow-hidden flex flex-col min-w-0">
+                <div class="p-8 md:p-10 flex justify-between items-center gap-4">
+                    <h2 class="serif italic text-2xl md:text-3xl text-indigo-100">Tasks Orbs</h2>
+                    <button id="addTaskBtn" class="bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 px-6 py-2 rounded-full border border-indigo-500/30 transition-all cursor-pointer whitespace-nowrap text-sm">
+                        Focus on New Goal
+                    </button>
+                </div>
+
+                <div id="orbContainer" class="flex-1 relative overflow-auto p-8 md:p-10 flex flex-wrap content-start gap-8">
+                    <!-- Orbs injected here -->
+                </div>
+
+                <div class="p-8 md:p-10 border-t border-white/5 bg-black/20">
+                    <form id="taskForm" class="hidden flex gap-4">
+                        <input type="text" id="taskInput" placeholder="What requires your essence?" class="flex-1 bg-transparent border-b border-white/20 py-2 text-lg md:text-xl font-light placeholder:opacity-20 text-white">
+                        <button type="submit" class="text-indigo-400 hover:text-white transition-colors cursor-pointer">Confirm</button>
+                    </form>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for Task Details -->
+        <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="glass w-full max-w-md rounded-3xl p-10 transform scale-90 transition-transform duration-300">
+                <h3 id="modalTitle" class="serif italic text-3xl md:text-4xl mb-6 text-indigo-50">Task Title</h3>
+                <div class="space-y-6">
+                    <p id="modalInfo" class="opacity-60 leading-relaxed italic text-sm md:text-base">The path forward will reveal itself in time.</p>
+                    <div class="flex flex-col gap-3">
+                        <button id="completeTaskBtn" class="w-full py-4 bg-indigo-500 hover:bg-indigo-600 rounded-2xl font-semibold transition-all cursor-pointer text-white">Complete & Dissolve</button>
+                        <button id="closeModalBtn" class="w-full py-4 border border-white/10 rounded-2xl hover:bg-white/5 transition-all opacity-60 cursor-pointer text-white">Return to Silence</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ZENFLOW ENGINE
+         */
+
+        const state = {
+            tasks: JSON.parse(localStorage.getItem('zenflow-tasks')) || [],
+            audioCtx: null,
+            oscillators: [],
+            auraIntensity: 5,
+            activeTaskId: null
+        };
+
+        // DOM elements
+        const auraCanvas = document.getElementById('aura');
+        const clockEl = document.getElementById('clock');
+        const orbContainer = document.getElementById('orbContainer');
+        const taskForm = document.getElementById('taskForm');
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const toggleAudioBtn = document.getElementById('toggleAudio');
+        const modal = document.getElementById('modal');
+        const freqSlider = document.getElementById('freqSlider');
+        const auraSlider = document.getElementById('auraSlider');
+
+        /**
+         * 1. AURA SYSTEM (Canvas Particles)
+         */
+        const ctx = auraCanvas.getContext('2d');
+        let particles = [];
+        const colors = ['#6366f1', '#a855f7', '#ec4899', '#818cf8'];
+
+        class Particle {
+            constructor() {
+                this.init();
+            }
+            init() {
+                this.x = Math.random() * window.innerWidth;
+                this.y = Math.random() * window.innerHeight;
+                this.size = Math.random() * 300 + 100;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.life = 0;
+                this.maxLife = Math.random() * 100 + 100;
+            }
+            update() {
+                this.x += this.vx * (state.auraIntensity / 5);
+                this.y += this.vy * (state.auraIntensity / 5);
+                if (this.x < 0 || this.x > window.innerWidth) this.vx *= -1;
+                if (this.y < 0 || this.y > window.innerHeight) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                const grade = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                grade.addColorStop(0, this.color);
+                grade.addColorStop(1, 'transparent');
+                ctx.fillStyle = grade;
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function setupAura() {
+            auraCanvas.width = window.innerWidth;
+            auraCanvas.height = window.innerHeight;
+            particles = Array.from({ length: 15 }, () => new Particle());
+        }
+
+        function animateAura() {
+            ctx.clearRect(0, 0, auraCanvas.width, auraCanvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateAura);
+        }
+
+        /**
+         * 2. AUDIO ENGINE (Binaural Beats)
+         */
+        function initAudio() {
+            if (state.audioCtx) return;
+            state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const carrier = 200; // Base carrier frequency
+            const beat = parseFloat(freqSlider.value);
+            
+            // Left oscillator
+            const oscL = state.audioCtx.createOscillator();
+            const gainL = state.audioCtx.createGain();
+            const pannerL = state.audioCtx.createStereoPanner();
+            pannerL.pan.value = -1;
+            oscL.frequency.value = carrier;
+            oscL.connect(gainL).connect(pannerL).connect(state.audioCtx.destination);
+            
+            // Right oscillator
+            const oscR = state.audioCtx.createOscillator();
+            const gainR = state.audioCtx.createGain();
+            const pannerR = state.audioCtx.createStereoPanner();
+            pannerR.pan.value = 1;
+            oscR.frequency.value = carrier + beat;
+            oscR.connect(gainR).connect(pannerR).connect(state.audioCtx.destination);
+
+            gainL.gain.value = 0.1;
+            gainR.gain.value = 0.1;
+            
+            state.oscillators = [oscL, oscR];
+            oscL.start();
+            oscR.start();
+
+            state.audioCtx.suspend();
+        }
+
+        function toggleResonance() {
+            initAudio();
+            const text = document.getElementById('audioStatusText');
+            const icon = document.getElementById('audioStatusIcon');
+            
+            if (state.audioCtx.state === 'running') {
+                state.audioCtx.suspend();
+                text.innerText = 'Begin Resonance';
+                icon.innerText = '⏵';
+            } else {
+                state.audioCtx.resume();
+                text.innerText = 'Resonance Active';
+                icon.innerText = '⏸';
+            }
+        }
+
+        /**
+         * 3. TASK SYSTEM
+         */
+        function renderTasks() {
+            orbContainer.innerHTML = '';
+            state.tasks.forEach(task => {
+                const orb = document.createElement('div');
+                orb.className = `orb glass w-32 h-32 rounded-full flex items-center justify-center text-center p-4 text-xs font-light tracking-wide border-indigo-400/20`;
+                orb.style.animationDelay = `${Math.random() * 2}s`;
+                orb.innerHTML = `<span>${task.title}</span>`;
+                orb.onclick = () => showTaskModal(task);
+                orbContainer.appendChild(orb);
+            });
+            localStorage.setItem('zenflow-tasks', JSON.stringify(state.tasks));
+        }
+
+        function addTask(title) {
+            state.tasks.push({ id: Date.now(), title, createdAt: new Date() });
+            renderTasks();
+            // Trigger feedback
+            particles.push(new Particle());
+        }
+
+        function showTaskModal(task) {
+            state.activeTaskId = task.id;
+            document.getElementById('modalTitle').innerText = task.title;
+            const diff = Math.floor((new Date() - new Date(task.createdAt)) / 60000);
+            document.getElementById('modalInfo').innerText = `This intention has been gestating for ${diff} minutes in your sanctuary.`;
+            
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.children[0].classList.remove('scale-90');
+        }
+
+        function closeModal() {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.children[0].classList.add('scale-90');
+        }
+
+        function completeActiveTask() {
+            const index = state.tasks.findIndex(t => t.id === state.activeTaskId);
+            if (index !== -1) {
+                state.tasks.splice(index, 1);
+                closeModal();
+                renderTasks();
+                // Splash effect on background
+                state.auraIntensity = 10;
+                setTimeout(() => state.auraIntensity = auraSlider.value, 2000);
+            }
+        }
+
+        /**
+         * 4. UTILS & INIT
+         */
+        function updateClock() {
+            const now = new Date();
+            clockEl.innerText = now.toTimeString().split(' ')[0];
+        }
+
+        // Listeners
+        addTaskBtn.onclick = () => {
+            taskForm.classList.toggle('hidden');
+            taskInput.focus();
+        };
+
+        taskForm.onsubmit = (e) => {
+            e.preventDefault();
+            if (taskInput.value.trim()) {
+                addTask(taskInput.value.trim());
+                taskInput.value = '';
+                taskForm.classList.add('hidden');
+            }
+        };
+
+        toggleAudioBtn.onclick = toggleResonance;
+        document.getElementById('completeTaskBtn').onclick = completeActiveTask;
+        document.getElementById('closeModalBtn').onclick = closeModal;
+
+        freqSlider.oninput = (e) => {
+            const val = e.target.value;
+            const labels = {
+                2: 'Delta (Sleep)',
+                6: 'Theta (Meditation)',
+                10: 'Alpha (Relax)',
+                20: 'Beta (Active)',
+                40: 'Gamma (Flow)'
+            };
+            const label = Object.keys(labels).reverse().find(k => val >= k);
+            document.getElementById('freqVal').innerText = `${val} Hz (${labels[label] || 'Resonance'})`;
+            
+            if (state.oscillators.length > 1) {
+                const carrier = 200;
+                state.oscillators[1].frequency.setTargetAtTime(carrier + parseFloat(val), state.audioCtx.currentTime, 0.1);
+            }
+        };
+
+        auraSlider.oninput = (e) => {
+            state.auraIntensity = e.target.value;
+        };
+
+        window.onresize = setupAura;
+
+        // Start
+        setInterval(updateClock, 1000);
+        updateClock();
+        setupAura();
+        animateAura();
+        renderTasks();
+
+    </script>
+</body>
+</html>
