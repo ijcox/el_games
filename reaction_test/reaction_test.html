@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reaction Time Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --rtt-bg: #0d0d0f;
+      --rtt-surface: #16161a;
+      --rtt-border: #2a2a32;
+      --rtt-text-primary: #f0eee8;
+      --rtt-text-muted: #6b6b7a;
+      --rtt-red: #e63946;
+      --rtt-green: #2dc653;
+      --rtt-yellow: #f4a261;
+      --rtt-accent: #a78bfa;
+      --rtt-panel-w: min(520px, 92vw);
+      --rtt-radius: 4px;
+      --rtt-font-display: 'Syne', sans-serif;
+      --rtt-font-mono: 'Space Mono', monospace;
+    }
+
+    body {
+      background-color: var(--rtt-bg);
+      color: var(--rtt-text-primary);
+      font-family: var(--rtt-font-mono);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ===== BACKGROUND GRID ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(167,139,250,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(167,139,250,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(13,13,15,0) 0%, #0d0d0f 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ===== LAYOUT ===== */
+    .rtt-wrapper {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      width: var(--rtt-panel-w);
+    }
+
+    /* ===== HEADER ===== */
+    .rtt-header {
+      text-align: center;
+    }
+
+    .rtt-title {
+      font-family: var(--rtt-font-display);
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--rtt-text-primary);
+    }
+
+    .rtt-title span {
+      color: var(--rtt-accent);
+    }
+
+    .rtt-subtitle {
+      margin-top: 8px;
+      font-size: 0.7rem;
+      color: var(--rtt-text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    /* ===== ARENA ===== */
+    #rtt-arena {
+      width: 100%;
+      aspect-ratio: 1 / 0.72;
+      border-radius: 6px;
+      border: 1px solid var(--rtt-border);
+      background: var(--rtt-surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    #rtt-arena:focus-visible {
+      outline: 2px solid var(--rtt-accent);
+      outline-offset: 3px;
+    }
+
+    /* corner decorations */
+    #rtt-arena::before,
+    #rtt-arena::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: var(--rtt-border);
+      border-style: solid;
+      transition: border-color 0.3s;
+    }
+
+    #rtt-arena::before {
+      top: 10px; left: 10px;
+      border-width: 1px 0 0 1px;
+    }
+
+    #rtt-arena::after {
+      bottom: 10px; right: 10px;
+      border-width: 0 1px 1px 0;
+    }
+
+    /* ===== ARENA STATES ===== */
+    #rtt-arena[data-rtt-state="idle"] {
+      border-color: var(--rtt-border);
+    }
+
+    #rtt-arena[data-rtt-state="waiting"] {
+      border-color: var(--rtt-red);
+      background: color-mix(in srgb, var(--rtt-red) 8%, var(--rtt-surface));
+      animation: rtt-pulse-red 1.6s ease-in-out infinite;
+    }
+
+    #rtt-arena[data-rtt-state="go"] {
+      border-color: var(--rtt-green);
+      background: color-mix(in srgb, var(--rtt-green) 10%, var(--rtt-surface));
+      animation: rtt-pulse-green 0.6s ease-out 1;
+    }
+
+    #rtt-arena[data-rtt-state="too-early"] {
+      border-color: var(--rtt-yellow);
+      background: color-mix(in srgb, var(--rtt-yellow) 8%, var(--rtt-surface));
+    }
+
+    #rtt-arena[data-rtt-state="result"] {
+      border-color: var(--rtt-accent);
+      background: color-mix(in srgb, var(--rtt-accent) 6%, var(--rtt-surface));
+    }
+
+    @keyframes rtt-pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,0); }
+      50%       { box-shadow: 0 0 32px 4px rgba(230,57,70,0.18); }
+    }
+
+    @keyframes rtt-pulse-green {
+      0%   { box-shadow: 0 0 0 0 rgba(45,198,83,0.6); }
+      100% { box-shadow: 0 0 48px 16px rgba(45,198,83,0); }
+    }
+
+    /* ===== INDICATOR DOT ===== */
+    #rtt-dot {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--rtt-border);
+      transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
+      flex-shrink: 0;
+    }
+
+    #rtt-arena[data-rtt-state="waiting"] #rtt-dot {
+      background: var(--rtt-red);
+      box-shadow: 0 0 28px 6px rgba(230,57,70,0.45);
+      transform: scale(1.04);
+    }
+
+    #rtt-arena[data-rtt-state="go"] #rtt-dot {
+      background: var(--rtt-green);
+      box-shadow: 0 0 36px 10px rgba(45,198,83,0.55);
+      transform: scale(1.1);
+    }
+
+    #rtt-arena[data-rtt-state="too-early"] #rtt-dot {
+      background: var(--rtt-yellow);
+      box-shadow: 0 0 20px 4px rgba(244,162,97,0.4);
+    }
+
+    #rtt-arena[data-rtt-state="result"] #rtt-dot {
+      background: var(--rtt-accent);
+      box-shadow: 0 0 24px 6px rgba(167,139,250,0.4);
+    }
+
+    /* ===== ARENA MESSAGE ===== */
+    #rtt-message {
+      font-family: var(--rtt-font-mono);
+      font-size: clamp(0.75rem, 2.2vw, 0.9rem);
+      color: var(--rtt-text-muted);
+      text-align: center;
+      letter-spacing: 0.04em;
+      padding: 0 16px;
+      line-height: 1.6;
+      max-width: 340px;
+      transition: color 0.2s;
+      pointer-events: none;
+    }
+
+    #rtt-arena[data-rtt-state="waiting"] #rtt-message {
+      color: color-mix(in srgb, var(--rtt-red) 80%, var(--rtt-text-primary));
+    }
+
+    #rtt-arena[data-rtt-state="go"] #rtt-message {
+      color: var(--rtt-green);
+      font-weight: 700;
+    }
+
+    #rtt-arena[data-rtt-state="too-early"] #rtt-message {
+      color: var(--rtt-yellow);
+    }
+
+    #rtt-arena[data-rtt-state="result"] #rtt-message {
+      color: var(--rtt-text-primary);
+    }
+
+    /* ===== BIG RESULT NUMBER ===== */
+    #rtt-result-display {
+      font-family: var(--rtt-font-display);
+      font-size: clamp(2.8rem, 10vw, 5rem);
+      font-weight: 800;
+      color: var(--rtt-accent);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      display: none;
+      pointer-events: none;
+    }
+
+    #rtt-arena[data-rtt-state="result"] #rtt-result-display {
+      display: block;
+      animation: rtt-pop 0.35s cubic-bezier(.34,1.56,.64,1) both;
+    }
+
+    @keyframes rtt-pop {
+      from { opacity: 0; transform: scale(0.6); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ===== CONTROLS ===== */
+    .rtt-controls {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .rtt-btn {
+      flex: 1;
+      font-family: var(--rtt-font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 14px 20px;
+      border-radius: var(--rtt-radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s, opacity 0.2s;
+      outline: none;
+    }
+
+    .rtt-btn:focus-visible {
+      outline: 2px solid var(--rtt-accent);
+      outline-offset: 3px;
+    }
+
+    .rtt-btn:active { transform: scale(0.97); }
+    .rtt-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    #rtt-btn-play {
+      background: var(--rtt-accent);
+      color: #0d0d0f;
+      border-color: var(--rtt-accent);
+    }
+
+    #rtt-btn-play:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--rtt-accent) 80%, #fff);
+    }
+
+    #rtt-btn-again {
+      background: transparent;
+      color: var(--rtt-text-muted);
+      border-color: var(--rtt-border);
+    }
+
+    #rtt-btn-again:hover:not(:disabled) {
+      border-color: var(--rtt-accent);
+      color: var(--rtt-accent);
+    }
+
+    /* ===== SCOREBOARD ===== */
+    .rtt-scores {
+      width: 100%;
+      border: 1px solid var(--rtt-border);
+      border-radius: var(--rtt-radius);
+      overflow: hidden;
+    }
+
+    .rtt-scores-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--rtt-border);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .rtt-scores-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--rtt-text-muted);
+    }
+
+    .rtt-scores-avg {
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      color: var(--rtt-text-muted);
+    }
+
+    .rtt-scores-avg span {
+      color: var(--rtt-accent);
+      font-weight: 700;
+    }
+
+    .rtt-scores-list {
+      display: flex;
+      gap: 0;
+    }
+
+    .rtt-score-item {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      border-right: 1px solid var(--rtt-border);
+      position: relative;
+    }
+
+    .rtt-score-item:last-child { border-right: none; }
+
+    .rtt-score-item.rtt-score--best::after {
+      content: 'best';
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.5rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--rtt-green);
+    }
+
+    .rtt-score-val {
+      font-family: var(--rtt-font-display);
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--rtt-text-primary);
+    }
+
+    .rtt-score-item.rtt-score--best .rtt-score-val {
+      color: var(--rtt-green);
+    }
+
+    .rtt-score-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--rtt-text-muted);
+      margin-top: 2px;
+    }
+
+    .rtt-scores-empty {
+      padding: 18px;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--rtt-text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ===== FOOTER ===== */
+    .rtt-footer {
+      font-size: 0.6rem;
+      color: var(--rtt-text-muted);
+      letter-spacing: 0.1em;
+      text-align: center;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <main class="rtt-wrapper" role="main">
+
+    <header class="rtt-header">
+      <h1 class="rtt-title">React<span>.</span>Fast</h1>
+      <p class="rtt-subtitle">Human Reaction Time Test</p>
+    </header>
+
+    <div
+      id="rtt-arena"
+      data-rtt-state="idle"
+      role="button"
+      tabindex="0"
+      aria-label="Reaction test arena. Activate to click when green."
+      aria-live="polite"
+    >
+      <div id="rtt-dot" aria-hidden="true"></div>
+      <p id="rtt-message">Press <strong>Play</strong> to begin</p>
+      <p id="rtt-result-display" aria-label="Result in milliseconds"></p>
+    </div>
+
+    <div class="rtt-controls">
+      <button id="rtt-btn-play" class="rtt-btn" type="button">▶ Play</button>
+      <button id="rtt-btn-again" class="rtt-btn" type="button" disabled>↺ Again</button>
+    </div>
+
+    <section class="rtt-scores" aria-label="Score history">
+      <div class="rtt-scores-header">
+        <span class="rtt-scores-title">History</span>
+        <span class="rtt-scores-avg" id="rtt-avg-display" aria-live="polite">avg —</span>
+      </div>
+      <div id="rtt-scores-body">
+        <p class="rtt-scores-empty">No scores yet</p>
+      </div>
+    </section>
+
+    <p class="rtt-footer">click anywhere inside the box · avg human ~250ms</p>
+
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* ---- State ---- */
+      const State = {
+        IDLE:       'idle',
+        WAITING:    'waiting',
+        GO:         'go',
+        TOO_EARLY:  'too-early',
+        RESULT:     'result',
+      };
+
+      let currentState  = State.IDLE;
+      let goTimer       = null;
+      let cooldownTimer = null;
+      let startTime     = null;
+      const scores      = [];
+
+      /* ---- Elements ---- */
+      const arena     = document.getElementById('rtt-arena');
+      const message   = document.getElementById('rtt-message');
+      const resultEl  = document.getElementById('rtt-result-display');
+      const btnPlay   = document.getElementById('rtt-btn-play');
+      const btnAgain  = document.getElementById('rtt-btn-again');
+      const scoresBody= document.getElementById('rtt-scores-body');
+      const avgDisplay= document.getElementById('rtt-avg-display');
+
+      /* ---- Helpers ---- */
+      const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+      function setState(s) {
+        currentState = s;
+        arena.dataset.rttState = s;
+      }
+
+      function clearTimers() {
+        clearTimeout(goTimer);
+        clearTimeout(cooldownTimer);
+        goTimer = null;
+        cooldownTimer = null;
+      }
+
+      function setMessage(html) {
+        message.innerHTML = html;
+      }
+
+      /* ---- Flow ---- */
+      function startRound() {
+        clearTimers();
+        setState(State.WAITING);
+        resultEl.textContent = '';
+        resultEl.setAttribute('aria-label', 'Result in milliseconds');
+        setMessage('Wait for <strong style="color:var(--rtt-green)">green</strong>…');
+        btnPlay.disabled  = true;
+        btnAgain.disabled = true;
+
+        const delay = rand(1500, 5000);
+        goTimer = setTimeout(showGo, delay);
+      }
+
+      function showGo() {
+        setState(State.GO);
+        startTime = performance.now();
+        setMessage('<strong>CLICK NOW!</strong>');
+      }
+
+      function handleTooEarly() {
+        clearTimers();
+        setState(State.TOO_EARLY);
+        setMessage('Too early! Wait for green…');
+        btnAgain.disabled = false;
+
+        // brief pause then auto-restart the waiting phase
+        cooldownTimer = setTimeout(() => {
+          if (currentState === State.TOO_EARLY) {
+            startRound();
+          }
+        }, 1800);
+      }
+
+      function handleSuccess() {
+        const elapsed = Math.round(performance.now() - startTime);
+        clearTimers();
+        setState(State.RESULT);
+
+        scores.push(elapsed);
+        resultEl.textContent = elapsed + ' ms';
+        resultEl.setAttribute('aria-label', elapsed + ' milliseconds');
+        setMessage(ratingLabel(elapsed));
+
+        btnPlay.disabled  = true;
+        btnAgain.disabled = false;
+
+        renderScores();
+      }
+
+      function ratingLabel(ms) {
+        if (ms < 150) return '⚡ Superhuman!';
+        if (ms < 200) return '🔥 Blazing fast';
+        if (ms < 250) return '✅ Excellent';
+        if (ms < 300) return '👍 Above average';
+        if (ms < 400) return '😐 Average';
+        return '🐢 Keep practicing';
+      }
+
+      /* ---- Arena click / keypress ---- */
+      function handleArenaActivate() {
+        if (currentState === State.WAITING) {
+          handleTooEarly();
+        } else if (currentState === State.GO) {
+          handleSuccess();
+        }
+        // ignore clicks in other states
+      }
+
+      arena.addEventListener('click', handleArenaActivate);
+      arena.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          handleArenaActivate();
+        }
+      });
+
+      /* ---- Buttons ---- */
+      btnPlay.addEventListener('click', () => {
+        startRound();
+      });
+
+      btnAgain.addEventListener('click', () => {
+        clearTimers();
+        startRound();
+      });
+
+      /* ---- Scores ---- */
+      function renderScores() {
+        if (scores.length === 0) {
+          scoresBody.innerHTML = '<p class="rtt-scores-empty">No scores yet</p>';
+          avgDisplay.innerHTML = 'avg —';
+          return;
+        }
+
+        const best = Math.min(...scores);
+        const avg  = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+
+        avgDisplay.innerHTML = `avg <span>${avg}ms</span>`;
+
+        // show last 5
+        const recent = scores.slice(-5);
+        const items = recent.map((s, i) => {
+          const isBest = s === best && scores.indexOf(best) >= scores.length - 5;
+          // recalculate whether THIS item in the slice is the global best
+          const isActualBest = s === best;
+          return `<div class="rtt-score-item${isActualBest ? ' rtt-score--best' : ''}">
+            <div class="rtt-score-val">${s}</div>
+            <div class="rtt-score-label">ms</div>
+          </div>`;
+        });
+
+        scoresBody.innerHTML = `<div class="rtt-scores-list">${items.join('')}</div>`;
+      }
+
+      /* ---- Init ---- */
+      setMessage('Press <strong>Play</strong> to begin');
+      btnAgain.disabled = true;
+    })();
+  </script>
+</body>
+</html>
