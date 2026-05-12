@@ -1,0 +1,2848 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>RPG Dungeon</title>
+    <style>
+      /* Prefix all classes with rpgd- to avoid conflicts */
+      .rpgd-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        background-color: #fff;
+        color: #fff;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      .rpgd-game-container {
+        display: flex;
+        width: 100%;
+        max-width: 1400px;
+        gap: 20px;
+        margin: auto;
+      }
+
+      /* Left Panel - Combat/Shop */
+      .rpgd-left-panel {
+        color: #fff;
+        flex: 1;
+        background-color: #009688;
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        min-width: 300px;
+        max-width: 300px;
+        height: 570px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Map Section */
+      .rpgd-map-section {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .rpgd-floor-display {
+         color: #fff;
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        align-self: flex-end;
+        background-color: #009688;
+        padding: 5px 15px;
+        border-radius: 5px;
+      }
+
+      .rpgd-map-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #009688;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+        overflow-y: hidden;
+        height: 500px;
+        position: relative;
+      }
+
+      /* Right Panel */
+      .rpgd-right-panel {
+        color: #fff;
+        flex: 1;
+        background-color: #009688;
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        min-width: 300px;
+        max-width: 300px;
+        height: 570px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .rpgd-panel-tabs {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #04776c;
+      }
+
+      .rpgd-panel-tab {
+        padding: 8px 5px;
+        cursor: pointer;
+        background-color: #04776c;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .rpgd-panel-tab.active {
+        background-color: #d88e5c;
+      }
+
+      .rpgd-panel-content {
+        display: none;
+        padding: 10px;
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .rpgd-panel-content.active {
+        display: block;
+      }
+
+        /* Equipment Grid */
+        .rpgd-equipment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+            padding: 8px;
+            overflow-y: auto;
+            max-height: 450px;
+            box-sizing: border-box;
+        }
+
+        .rpgd-equipment-grid > div:nth-child(1) { grid-column: 1; grid-row: 1; } /* helmet */
+        .rpgd-equipment-grid > div:nth-child(2) { grid-column: 2; grid-row: 1; } /* chest */
+        .rpgd-equipment-grid > div:nth-child(3) { grid-column: 1; grid-row: 2; } /* leggings */
+        .rpgd-equipment-grid > div:nth-child(4) { grid-column: 2; grid-row: 2; } /* gloves */
+        .rpgd-equipment-grid > div:nth-child(5) { grid-column: 1; grid-row: 3; } /* boots */
+        .rpgd-equipment-grid > div:nth-child(6) { grid-column: 2; grid-row: 3; } /* amulet */
+        .rpgd-equipment-grid > div:nth-child(7) { grid-column: 1; grid-row: 4; } /* ring1 */
+        .rpgd-equipment-grid > div:nth-child(8) { grid-column: 2; grid-row: 4; } /* ring2 */
+        .rpgd-equipment-grid > div:nth-child(9) { grid-column: 1; grid-row: 5; } /* left hand */
+        .rpgd-equipment-grid > div:nth-child(10) { grid-column: 2; grid-row: 5; } /* right hand */
+
+        .rpgd-equipment-slot {
+            background-color: #04776c;
+            padding: 6px;
+            border-radius: 5px;
+            min-height: 40px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            transition: background-color 0.2s;
+        }
+
+        .rpgd-equipment-slot:hover {
+            background-color: #066b60;
+        }
+
+        .rpgd-slot-name {
+            font-weight: bold;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+            color: #d88e5c;
+        }
+
+        .rpgd-slot-item {
+            font-size: 0.85em;
+            word-break: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rpgd-slot-item.empty {
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+      /* Stats Grid */
+      .rpgd-stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .rpgd-stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .rpgd-stat-number {
+        display: inline-block;
+        min-width: 20px;
+        text-align: right;
+      }
+
+      .rpgd-level-info {
+        grid-column: 1 / -1;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .rpgd-level-text {
+        font-size: 1.5em;
+        margin-bottom: 5px;
+      }
+
+      .rpgd-xp-text {
+        margin-bottom: 5px;
+      }
+
+      .rpgd-hp-text {
+        margin-bottom: 5px;
+      }
+
+      .rpgd-bar-container {
+        width: 100%;
+        height: 20px;
+        background-color: #04776c;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+      }
+
+      .rpgd-xp-bar {
+        height: 100%;
+        background-color: #7cebf3;
+        width: 0%;
+        transition: width 0.3s;
+      }
+
+      .rpgd-hp-bar {
+        height: 100%;
+        background-color: #f74c5a;
+        width: 100%;
+        transition: width 0.3s;
+      }
+
+      /* Inventory List */
+      .rpgd-inventory-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #04776c;
+      }
+
+      .rpgd-inventory-list {
+        max-height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      .rpgd-inventory-item {
+        background-color: #04776c;
+        padding: 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .rpgd-inventory-item:hover {
+        background-color: #666;
+      }
+
+      .rpgd-inventory-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Hexagon styling */
+      .rpgd-column {
+        display: flex;
+        flex-direction: column;
+        margin-right: -10px;
+      }
+      .rpgd-hexagon {
+        width: 50px;
+        height: 50px;
+        text-align: center;
+        align-content: center;
+        color: white;
+        background-color: #8e9aaf;
+        position: relative;
+        margin: -2px 0;
+        clip-path: polygon(
+          25% 6.7%,
+          75% 6.7%,
+          100% 50%,
+          75% 93.3%,
+          25% 93.3%,
+          0% 50%
+        );
+      }
+      .rpgd-hexagon.empty {
+        background-color: transparent;
+        pointer-events: none;
+        opacity: 0;
+      }
+      .rpgd-hexagon .rpgd-border {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: black;
+        clip-path: polygon(
+          27.5% 11.03%,
+          72.5% 11.03%,
+          95% 50%,
+          72.5% 88.97%,
+          27.5% 88.97%,
+          5% 50%,
+          0 50%,
+          25% 93.3%,
+          75% 93.3%,
+          100% 50%,
+          75% 6.7%,
+          25% 6.7%,
+          0 50%,
+          5% 50%
+        );
+        pointer-events: none;
+      }
+      .rpgd-hexagon.floor {
+        background-color: #c9ada7;
+      }
+      .rpgd-hexagon.player {
+        background-color: #6ed672;
+      }
+      .rpgd-hexagon.enemy {
+        background-color: #f74c5a;
+      }
+      .rpgd-hexagon.water {
+        background-color: #359ad4;
+      }
+
+      .rpgd-hexagon.water::after {
+        content: "🎣";
+        position: absolute;
+        top: 45%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 20px;
+      }
+
+      .rpgd-hexagon span {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        text-align: center;
+        color: white;
+      }
+
+      /* Combat screen styling */
+      .rpgd-combat-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+      }
+
+      .rpgd-battle-stats {
+        padding: 0;
+        margin: 0;
+      }
+
+      .rpgd-vs-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 0;
+        border-top: 1px solid #04776c;
+        border-bottom: 1px solid #04776c;
+        margin: 10px 0;
+      }
+
+      .rpgd-vs-text {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #d49854;
+      }
+
+      .rpgd-health-bar {
+        width: 100%;
+        background-color: #04776c;
+        margin: 10px 0;
+        border-radius: 5px;
+        overflow: hidden;
+        height: 20px;
+      }
+
+      .rpgd-player-health-bar {
+        background-color: #6ed672;
+        height: 100%;
+        transition: width 0.3s;
+      }
+
+      .rpgd-enemy-health-bar {
+        background-color: #f74c5a;
+        height: 100%;
+        transition: width 0.3s;
+      }
+
+      .rpgd-action-buttons {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .rpgd-log {
+        width: 100%;
+        height: 100px;
+        background-color: #04776c;
+        color: #fff;
+        padding: 5px;
+        overflow-y: auto;
+        border-radius: 5px;
+        font-size: 0.9em;
+        min-height: 100px;
+      }
+
+      .rpgd-continue-buttons {
+        margin-top: 15px;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* Shop screen styling */
+      .rpgd-shop-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+      }
+
+      .rpgd-shop-header {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #04776c;
+      }
+
+      .rpgd-shop-items {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 15px;
+        width: 100%;
+      }
+
+      .rpgd-shop-items button {
+        width: 100%;
+        padding: 8px;
+      }
+
+      .rpgd-shop-items button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* Screen styling */
+      .rpgd-screen {
+        display: none;
+      }
+
+      .rpgd-screen.active {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+
+      .rpgd-hidden {
+        display: none;
+      }
+
+      /* Stat allocation */
+      .rpgd-stat-allocation {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #04776c;
+        border-radius: 5px;
+      }
+
+      .rpgd-stat-points {
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+
+      .rpgd-stat-bonus {
+        color: #6ed672;
+        font-size: 0.9em;
+      }
+
+      /* Map overlay for combat */
+      .rpgd-map-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.3);
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      .rpgd-sell-button {
+        margin-left: 5px;
+        background-color: #d49854;
+      }
+      
+      .rpgd-item-count {
+        margin-left: 5px;
+        color: #ccc;
+      }
+
+      /* Fishing Screen Layout */
+      .rpgd-fishing-log-container {
+        padding: 15px;
+        height: 100%;
+      }
+
+      .rpgd-fishing-log {
+        width: 100%;
+        height: 150px;
+        background-color: #04776c;
+        color: #fff;
+        padding: 10px;
+        overflow-y: auto;
+        border-radius: 5px;
+        font-size: 0.9em;
+        min-height: 150px;
+        margin-bottom: 20px;
+      }
+
+      .rpgd-fishing-game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 20px;
+      }
+
+      .rpgd-fishing-circle-container {
+        position: relative;
+        width: 300px;
+        height: 300px;
+        margin: 30px 0;
+      }
+
+      .rpgd-fishing-outer-circle {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border: 4px solid #fff;
+        border-radius: 50%;
+      }
+
+      .rpgd-fishing-inner-circle {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background-color: #f74c5a;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: all 0.05s linear;
+      }
+
+      .rpgd-fishing-progress-container {
+        width: 80%;
+        height: 30px;
+        background-color: #04776c;
+        border-radius: 15px;
+        margin: 20px 0;
+        overflow: hidden;
+      }
+
+      .rpgd-fishing-progress-bar {
+        height: 100%;
+        background-color: #7cebf3;
+        width: 0%;
+        transition: width 0.1s;
+      }
+
+      .rpgd-fishing-instructions {
+        text-align: center;
+        margin: 20px 0;
+        font-size: 1.2em;
+      }
+
+      /* Fishing Game Styles */
+      .rpgd-fishing-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        padding: 20px;
+      }
+
+      .rpgd-fishing-game-area {
+        position: relative;
+        width: 240px;
+        height: 240px;
+        margin: 20px 0;
+        border-radius: 50%;
+        background-image: linear-gradient(#359ad4, #2a37ab);
+        border: 3px solid #d49854;
+      }
+
+      .rpgd-fishing-target-zone {
+        position: absolute;
+        width: 210px;
+        height: 210px;
+        border: 3px dashed #d49854;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+
+      .rpgd-fishing-circle {
+        position: absolute;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        background-color: transparent;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: all 0.05s linear;
+        pointer-events: none;
+      }
+
+
+      .rpgd-fishing-circle.success {
+        border-color: #6ed672;
+        animation: fadeOut 0.5s forwards;
+      }
+
+      .rpgd-fishing-circle.fail {
+        border-color: #f74c5a;
+        animation: fadeOut 0.5s forwards;
+      }
+
+      @keyframes fadeOut {
+        to { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+      }
+
+      .rpgd-fishing-controls {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      #rpgd-start-fishing {
+        padding: 10px 20px;
+        font-size: 1.1em;
+        background-color: #d88e5c;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      #rpgd-start-fishing:disabled {
+        background-color: #666;
+        cursor: not-allowed;
+      }
+
+      #rpgd-stop-fishing {
+        padding: 10px 20px;
+        font-size: 1.1em;
+        background-color: #d88e5c;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body class="rpgd-body">
+    <div class="rpgd-game-container">
+      <!-- Left Panel - Combat/Shop -->
+      <div class="rpgd-left-panel">
+        <!-- Combat Screen -->
+        <div id="rpgd-combat-screen" class="rpgd-screen active">
+          <div class="rpgd-combat-container">
+            <div class="rpgd-battle-stats">
+              <h3>You</h3>
+              <div class="rpgd-health-bar">
+                <div id="rpgd-player-health-bar" class="rpgd-player-health-bar" style="width: 100%"></div>
+              </div>
+              <p>HP: <span id="rpgd-player-hp">150/150</span></p>
+              
+              <div class="rpgd-action-buttons">
+                <button onclick="rpgdPlayerAttack()">Attack</button>
+                <button onclick="rpgdOpenInventoryForItemUse()">Use Item</button>
+              </div>
+            </div>
+
+            <div class="rpgd-vs-container">
+              <div class="rpgd-vs-text">VS</div>
+              <div class="rpgd-log" id="rpgd-log"></div>
+            </div>
+
+            <div class="rpgd-battle-stats">
+              <h3 id="rpgd-enemy-name">Enemy</h3>
+              <div class="rpgd-health-bar">
+                <div id="rpgd-enemy-health-bar" class="rpgd-enemy-health-bar" style="width: 100%"></div>
+              </div>
+              <p>HP: <span id="rpgd-enemy-hp">100/100</span></p>
+            </div>
+          </div>
+
+          <div class="rpgd-continue-buttons">
+            <button
+              id="rpgd-continue-button"
+              class="rpgd-hidden"
+              onclick="rpgdContinueBattle()"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+
+        <!-- Shop Screen -->
+        <div id="rpgd-shop-screen" class="rpgd-screen">
+          <div class="rpgd-shop-container">
+            <div class="rpgd-shop-header">
+              <h2>Welcome to the shop!</h2>
+              <div>Gold: <span id="rpgd-shop-gold">15</span></div>
+            </div>
+              <div class="rpgd-shop-items">
+                <button id="rpgd-item1"></button>
+                <button id="rpgd-item2"></button>
+                <button id="rpgd-item3"></button>
+                <button id="rpgd-item4"></button>
+                <button id="rpgd-item5"></button>
+                <button id="rpgd-sell-button" onclick="rpgdOpenSellMenu()">Sell Items</button>
+              </div>
+              <div class="rpgd-continue-buttons">
+                <button onclick="rpgdContinueToNextFloor()">Continue</button>
+              </div>
+          </div>
+        </div>
+
+        <!-- Sell Menu -->
+        <div id="rpgd-sell-screen" class="rpgd-screen">
+          <div class="rpgd-shop-container">
+            <div class="rpgd-shop-header">
+              <h2>Sell Items</h2>
+              <div>Gold: <span id="rpgd-sell-gold">15</span></div>
+            </div>
+            <div class="rpgd-inventory-list" id="rpgd-sell-list">
+              <!-- Items will be dynamically added here -->
+            </div>
+            <div class="rpgd-continue-buttons">
+              <button onclick="rpgdCloseSellMenu()">Back to Shop</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Defeat Screen -->
+        <div id="rpgd-defeat-screen" class="rpgd-screen">
+          <h2>You Lost!</h2>
+          <div class="rpgd-continue-buttons">
+            <button id="rpgd-restart-button" onclick="rpgdRestartGame()">Try Again?</button>
+          </div>
+        </div>
+
+        <!-- Fishing Log -->
+        <div id="rpgd-fishing-log-panel" class="rpgd-screen">
+          <div class="rpgd-fishing-log-container">
+            <h3 style="text-align: center">Fishing Log</h3>
+            <div class="rpgd-fishing-log" id="rpgd-fishing-log"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Section - Map -->
+      <div class="rpgd-map-section">
+        <div class="rpgd-floor-display" id="rpgd-floor-number">Floor: 1</div>
+        <div id="rpgd-map-screen" class="rpgd-screen active">
+          <div class="rpgd-map-container" id="rpgd-dungeon-container"></div>
+          <div id="rpgd-map-overlay" class="rpgd-map-overlay rpgd-hidden"></div>
+        </div>
+
+        <!-- Fishing Game Screen -->
+        <div id="rpgd-fishing-screen" class="rpgd-screen">
+          <div class="rpgd-fishing-container">
+            <div class="rpgd-fishing-progress-container">
+              <div class="rpgd-fishing-progress-bar" id="rpgd-fishing-progress"></div>
+            </div>
+            <div class="rpgd-fishing-game-area">
+              <div class="rpgd-fishing-target-zone"></div>
+              <!-- Circles will be added here dynamically -->
+            </div>
+            <div class="rpgd-fishing-controls">
+              <button id="rpgd-start-fishing" onclick="rpgdStartFishingGame()">Cast Line</button>
+              <button id="rpgd-stop-fishing" class="rpgd-hidden" onclick="rpgdStopFishing()">Stop Fishing</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Section - Panel -->
+      <div class="rpgd-right-panel">
+        <div class="rpgd-panel-tabs">
+          <div class="rpgd-panel-tab active" onclick="rpgdSwitchPanel('stats')">Stats</div>
+          <div class="rpgd-panel-tab" onclick="rpgdSwitchPanel('inventory')">Bag</div>
+          <div class="rpgd-panel-tab" onclick="rpgdSwitchPanel('equipment')">Gear</div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div id="rpgd-stats-panel" class="rpgd-panel-content active">
+          <div class="rpgd-stats-grid">
+            <div class="rpgd-level-info">
+              <div class="rpgd-level-text">Level <span id="rpgd-player-level">1</span></div>
+              <div class="rpgd-xp-text">XP: <span id="rpgd-player-xp">0</span>/<span id="rpgd-player-next-level">100</span></div>
+              <div class="rpgd-bar-container">
+                <div class="rpgd-xp-bar" id="rpgd-xp-bar"></div>
+              </div>
+              <div class="rpgd-hp-text">HP: <span id="rpgd-player-hp-info">150</span>/<span id="rpgd-player-max-hp-info">150</span></div>
+              <div class="rpgd-bar-container">
+                <div class="rpgd-hp-bar" id="rpgd-hp-bar"></div>
+              </div>
+            </div>
+            <div class="rpgd-stat-item">ATK: <span id="rpgd-player-atk-info" class="rpgd-stat-number">15</span><span id="rpgd-player-atk-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">DEF: <span id="rpgd-player-def-info" class="rpgd-stat-number">0</span><span id="rpgd-player-def-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">INT: <span id="rpgd-player-int-info" class="rpgd-stat-number">10</span><span id="rpgd-player-int-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">SPD: <span id="rpgd-player-spd-info" class="rpgd-stat-number">10</span><span id="rpgd-player-spd-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">WIS: <span id="rpgd-player-wis-info" class="rpgd-stat-number">10</span><span id="rpgd-player-wis-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">VIT: <span id="rpgd-player-vit-info" class="rpgd-stat-number">10</span><span id="rpgd-player-vit-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">DEX: <span id="rpgd-player-dex-info" class="rpgd-stat-number">10</span><span id="rpgd-player-dex-bonus" class="rpgd-stat-bonus"></span></div>
+            <div class="rpgd-stat-item">CHA: <span id="rpgd-player-cha-info" class="rpgd-stat-number">10</span><span id="rpgd-player-cha-bonus" class="rpgd-stat-bonus"></span></div>
+          </div>
+          
+          <div class="rpgd-stat-allocation" id="rpgd-stat-allocation" style="display: none;">
+                <div class="rpgd-stat-points">Stat Points: <span id="rpgd-stat-points">0</span></div>
+                <div class="rpgd-stat-item">ATK <button onclick="rpgdAllocateStat('atk')">+</button></div>
+                <div class="rpgd-stat-item">DEF <button onclick="rpgdAllocateStat('def')">+</button></div>
+                <div class="rpgd-stat-item">INT <button onclick="rpgdAllocateStat('int')">+</button></div>
+                <div class="rpgd-stat-item">SPD <button onclick="rpgdAllocateStat('spd')">+</button></div>
+                <div class="rpgd-stat-item">WIS <button onclick="rpgdAllocateStat('wis')">+</button></div>
+                <div class="rpgd-stat-item">VIT <button onclick="rpgdAllocateStat('vit')">+</button></div>
+                <div class="rpgd-stat-item">DEX <button onclick="rpgdAllocateStat('dex')">+</button></div>
+                <div class="rpgd-stat-item">CHA <button onclick="rpgdAllocateStat('cha')">+</button></div>
+                <button onclick="rpgdConfirmStatAllocation()">Confirm</button>
+            </div>
+        </div>
+
+        <!-- Inventory Panel -->
+        <div id="rpgd-inventory-panel" class="rpgd-panel-content">
+          <div class="rpgd-inventory-header">
+            <span>Gold: <span id="rpgd-inventory-gold">15</span></span>
+          </div>
+          <div class="rpgd-inventory-list" id="rpgd-inventory-list">
+            <!-- Items will be dynamically added here -->
+          </div>
+        </div>
+
+        <!-- Equipment Panel -->
+        <div id="rpgd-equipment-panel" class="rpgd-panel-content">
+            <div class="rpgd-equipment-grid">
+                <div class="rpgd-equipment-slot" id="rpgd-helmet-slot" onclick="rpgdUnequipItem('helmet')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-chest-slot" onclick="rpgdUnequipItem('chest')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-leggings-slot" onclick="rpgdUnequipItem('leggings')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-gloves-slot" onclick="rpgdUnequipItem('gloves')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-boots-slot" onclick="rpgdUnequipItem('boots')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-amulet-slot" onclick="rpgdUnequipItem('amulet')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-ring1-slot" onclick="rpgdUnequipItem('ring1')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-ring2-slot" onclick="rpgdUnequipItem('ring2')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-right-hand-slot" onclick="rpgdUnequipItem('rightHand')"></div>
+                <div class="rpgd-equipment-slot" id="rpgd-left-hand-slot" onclick="rpgdUnequipItem('leftHand')"></div>
+
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Player object
+      const rpgdPlayer = {
+        level: 1,
+        xp: 0,
+        nextLevel: 100,
+        healthCrystalCount: 0,
+        baseMaxHp: 150,
+        maxHp: 150,
+        hp: 150,
+        baseAtk: 15,
+        atk: 15,
+        atkBonus: 0,
+        baseDef: 0,
+        def: 0,
+        defBonus: 0,
+        baseInt: 10,
+        int: 10,
+        intBonus: 0,
+        baseSpd: 10,
+        spd: 10,
+        spdBonus: 0,
+        baseWis: 10,
+        wis: 10,
+        wisBonus: 0,
+        baseVit: 10,
+        vit: 10,
+        vitBonus: 0,
+        baseDex: 10,
+        dex: 10,
+        dexBonus: 0,
+        baseCha: 10,
+        cha: 10,
+        chaBonus: 0,
+        gold: 15,
+        lives: 0,
+        statPoints: 0,
+        inventory: [],
+        equipment: {
+          helmet: null,
+          chest: null,
+          leggings: null,
+          gloves: null,
+          boots: null,
+          ring1: null,
+          ring2: null,
+          amulet: null,
+          leftHand: null,
+          rightHand: null
+        }
+      };
+
+      // Enemy templates
+      const rpgdEnemyTemplates = [
+        { name: "Goblin", maxHp: 50, hp: 50, atk: 6, def: 2, gold: 3 },
+        { name: "Skeleton", maxHp: 60, hp: 60, atk: 7, def: 3, gold: 4 },
+        { name: "Orc", maxHp: 100, hp: 100, atk: 10, def: 5, gold: 8 },
+        { name: "Warlock", maxHp: 90, hp: 90, atk: 15, def: 1, gold: 8 },
+        { name: "Troll", maxHp: 120, hp: 120, atk: 13, def: 4, gold: 10 },
+        { name: "Dragon", maxHp: 150, hp: 150, atk: 15, def: 5, gold: 20 },
+        { name: "Nature Sprites", maxHp: 110, hp: 110, atk: 15, def: 9, gold: 4 },
+        { name: "Dire Wolves", maxHp: 120, hp: 120, atk: 16, def: 6, gold: 6 },
+        { name: "Golem", maxHp: 400, hp: 400, atk: 12, def: 15, gold: 10 },
+        { name: "Crystal Spiders", maxHp: 175, hp: 175, atk: 25, def: 5, gold: 12 },
+        { name: "Dark Elf", maxHp: 250, hp: 250, atk: 30, def: 10, gold: 15 },
+        { name: "Wyvern", maxHp: 400, hp: 400, atk: 25, def: 20, gold: 25 },
+      ];
+
+      // Game state variables
+      let enemy = {};
+      let floor = 1;
+      let enemiesRemaining = 0;
+      let currentPlayerTile;
+      const gridRadius = 4;
+      let activeBuffs = { atk: [], def: [] };
+      let itemCounts = {};
+      let itemLevels = { item1: 0, item2: 0 };
+      let selectedItem5 = null;
+      let shopStock = {
+        item1: { current: 1, max: 1 },  // Stick
+        item2: { current: 1, max: 1 },  // Wooden Shield
+        item3: { current: 10, max: 10 }, // Health Potion
+        item4: { current: 1, max: 1 },   // Health Crystal
+        item5: { current: 1, max: 1 }    // Random combat item
+      };
+      let shopItems = {}; // Populated when shop is opened
+      let inCombat = false;
+      let enemyTurnInProgress = false;
+
+      // Fishing game variables
+      let fishingGameActive = false;
+      let currentWaterTile = null;
+      let fishRemaining = 3;
+      let fishingProgress = 40;
+      let activeCircles = [];
+      let circleSpeed = 4; // Base speed, will be randomized
+      let circleInterval;
+      let progressInterval;
+      let currentCircle = null;
+      let firstCircleSpawned = false;
+      let currentFishTarget = null;
+
+      const rpgdItemTypes = {
+        COMBAT: 'combat',
+        EQUIPMENT: 'equipment',
+        CONSUMABLE: 'consumable',
+        FISH: 'fish',
+        TREASURE: 'treasure'
+      };
+      const fishingItems = [
+        { name: "Small Fish", type: rpgdItemTypes.FISH, sellPrice: 2, weight: 30, difficulty: 1 },
+        { name: "Medium Fish", type: rpgdItemTypes.FISH, sellPrice: 3, weight: 25, difficulty: 1.2 },
+        { name: "Large Fish", type: rpgdItemTypes.FISH, sellPrice: 5, weight: 20, difficulty: 1.4 },
+        { name: "Rare Fish", type: rpgdItemTypes.FISH, sellPrice: 10, weight: 10, difficulty: 1.8 },
+        { name: "Golden Fish", type: rpgdItemTypes.CONSUMABLE, effect: "fullheal", sellPrice: 20, weight: 5, difficulty: 2.2 },
+        { name: "Ancient Ring", type: rpgdItemTypes.EQUIPMENT, slot: "ring1", wis: 5, sellPrice: 15, weight: 3, difficulty: 2.0 },
+        { name: "Pearl Necklace", type: rpgdItemTypes.EQUIPMENT, slot: "amulet", cha: 5, sellPrice: 20, weight: 2, difficulty: 2.3 },
+        { name: "Sunken Treasure", type: rpgdItemTypes.TREASURE, sellPrice: 25, weight: 2, difficulty: 2.5 },
+        { name: "Fishing Spear", type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", atk: 5, sellPrice: 10, weight: 4, difficulty: 1.9 },
+        { name: "Aqua Potion", type: rpgdItemTypes.CONSUMABLE, effect: "watershield", sellPrice: 5, weight: 8, difficulty: 1.6 }
+      ];
+
+    // Initialize the game
+    window.onload = function() {
+      // Initialize player with 5 health potions
+      rpgdPlayer.inventory = [
+        { 
+          id: 'health_potion_initial', 
+          name: "Health Potion", 
+          type: rpgdItemTypes.CONSUMABLE, 
+          heal: 20, 
+          stackable: true, 
+          count: 5, 
+          sellPrice: 1 
+        }
+      ];
+      
+      rpgdGenerateDungeon();
+      rpgdDisableButtons();
+      rpgdShowScreen("rpgd-map-screen");
+      rpgdUpdateStats();
+      rpgdUpdateEquipmentDisplay();
+      rpgdUpdateInventoryDisplay();
+    };
+
+    document.addEventListener('keydown', rpgdHandleFishingKeyPress);
+
+      // Panel switching
+      function rpgdSwitchPanel(panelName) {
+        document.querySelectorAll('.rpgd-panel-tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.querySelectorAll('.rpgd-panel-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        
+        document.querySelector(`.rpgd-panel-tab[onclick*="${panelName}"]`).classList.add('active');
+        document.getElementById(`rpgd-${panelName}-panel`).classList.add('active');
+      }
+
+      function rpgdOpenInventoryForItemUse() {
+        rpgdSwitchPanel('inventory');
+      }
+
+      // Equipment functions
+function rpgdEquipItem(item) {
+  if (!item.slot) {
+    alert("This item cannot be equipped!");
+    return;
+  }
+
+  // Unequip current item if any
+  if (rpgdPlayer.equipment[item.slot]) {
+    rpgdUnequipItem(item.slot);
+  }
+
+  // Equip new item
+  rpgdPlayer.equipment[item.slot] = item;
+  
+  // Remove from inventory
+  const itemIndex = rpgdPlayer.inventory.findIndex(i => i.id === item.id);
+  if (itemIndex !== -1) {
+    if (item.count && item.count > 1) {
+      rpgdPlayer.inventory[itemIndex].count--;
+    } else {
+      rpgdPlayer.inventory.splice(itemIndex, 1);
+    }
+  }
+  
+  rpgdCalculateStats();
+  rpgdUpdateEquipmentDisplay();
+  rpgdUpdateInventoryDisplay();
+  rpgdUpdateStats();
+}
+
+      function rpgdUnequipItem(slot) {
+        const item = rpgdPlayer.equipment[slot];
+        if (!item) return;
+        
+        // Add to inventory
+        const existingItem = rpgdPlayer.inventory.find(i => i.name === item.name && i.type === rpgdItemTypes.EQUIPMENT);
+        if (existingItem) {
+          existingItem.count = (existingItem.count || 1) + 1;
+        } else {
+          const newItem = {...item};
+          newItem.count = 1;
+          rpgdPlayer.inventory.push(newItem);
+        }
+        
+        rpgdPlayer.equipment[slot] = null;
+        rpgdCalculateStats();
+        
+        rpgdUpdateEquipmentDisplay();
+        rpgdUpdateStats();
+        rpgdUpdateInventoryDisplay();
+      }
+
+        // Update equipment display function
+        function rpgdUpdateEquipmentDisplay() {
+            const slots = [
+                { id: 'helmet', name: 'Helmet', elementId: 'helmet' },
+                { id: 'chest', name: 'Chest', elementId: 'chest' },
+                { id: 'leggings', name: 'Leggings', elementId: 'leggings' },
+                { id: 'gloves', name: 'Gloves', elementId: 'gloves' },
+                { id: 'boots', name: 'Boots', elementId: 'boots' },
+                { id: 'amulet', name: 'Amulet', elementId: 'amulet' },
+                { id: 'ring1', name: 'Ring 1', elementId: 'ring1' },
+                { id: 'ring2', name: 'Ring 2', elementId: 'ring2' },
+                { id: 'leftHand', name: 'Left Hand', elementId: 'left-hand' },
+                { id: 'rightHand', name: 'Right Hand', elementId: 'right-hand' }
+            ];
+
+            slots.forEach(slot => {
+                const element = document.getElementById(`rpgd-${slot.elementId}-slot`);
+                if (!element) {
+                    console.warn(`Element not found: rpgd-${slot.elementId}-slot`);
+                    return;
+                }
+                
+                // Clear and rebuild the slot content
+                element.innerHTML = '';
+                
+                // Add slot name
+                const slotName = document.createElement('div');
+                slotName.className = 'rpgd-slot-name';
+                slotName.textContent = slot.name;
+                element.appendChild(slotName);
+                
+                // Add item display
+                const item = rpgdPlayer.equipment[slot.id];
+                const itemDisplay = document.createElement('div');
+                itemDisplay.className = 'rpgd-slot-item';
+                
+                if (item) {
+                    itemDisplay.textContent = item.name;
+                    element.classList.remove('empty');
+                } else {
+                    itemDisplay.textContent = 'Empty';
+                    itemDisplay.classList.add('empty');
+                    element.classList.add('empty');
+                }
+                
+                element.appendChild(itemDisplay);
+            });
+        }
+
+      function rpgdUpdateInventoryDisplay() {
+        const inventoryList = document.getElementById("rpgd-inventory-list");
+        inventoryList.innerHTML = '';
+
+        // Sort inventory - health potions first, then other items
+        const sortedInventory = [...rpgdPlayer.inventory];
+        sortedInventory.sort((a, b) => {
+          if (a.name === "Health Potion") return -1;
+          if (b.name === "Health Potion") return 1;
+          return 0;
+        });
+
+        // Group stackable items
+        const groupedItems = {};
+        sortedInventory.forEach(item => {
+          if (item.type === rpgdItemTypes.EQUIPMENT || !item.stackable) {
+            const key = item.id || item.name;
+            groupedItems[key] = {...item, count: 1};
+          } else {
+            if (!groupedItems[item.name]) {
+              groupedItems[item.name] = {...item, count: 0};
+            }
+            groupedItems[item.name].count += item.count || 1;
+          }
+        });
+
+        // Display grouped items
+        Object.values(groupedItems).forEach((item, index) => {
+          const itemElement = document.createElement("div");
+          const isDisabledInCombat = inCombat && (item.type === rpgdItemTypes.CONSUMABLE && item.name === "Health Crystal");
+          itemElement.className = `rpgd-inventory-item ${isDisabledInCombat ? 'disabled' : ''}`;
+          
+          const itemName = document.createElement("span");
+          itemName.textContent = item.name;
+          if (item.count > 1) {
+            const countSpan = document.createElement("span");
+            countSpan.className = "rpgd-item-count";
+            countSpan.textContent = `x${item.count}`;
+            itemName.appendChild(countSpan);
+          }
+          
+          const itemActions = document.createElement("div");
+          
+          if (item.type === rpgdItemTypes.EQUIPMENT) {
+            const equipButton = document.createElement("button");
+            equipButton.textContent = "Equip";
+            equipButton.onclick = (e) => {
+              e.stopPropagation();
+              rpgdEquipItem(item);
+            };
+            itemActions.appendChild(equipButton);
+          }
+          else if (item.type === rpgdItemTypes.COMBAT || item.type === rpgdItemTypes.CONSUMABLE) {
+            const useButton = document.createElement("button");
+            useButton.textContent = "Use";
+            useButton.onclick = (e) => {
+              e.stopPropagation();
+              rpgdUseItem(item, index);
+            };
+            useButton.disabled = isDisabledInCombat;
+            itemActions.appendChild(useButton);
+          }
+
+          itemElement.appendChild(itemName);
+          itemElement.appendChild(itemActions);
+          inventoryList.appendChild(itemElement);
+        });
+      }
+
+      // Stat calculation and display
+      function rpgdCalculateStats() {
+        // Reset only the bonuses that equipment can affect
+        rpgdPlayer.atkBonus = 0;
+        rpgdPlayer.defBonus = 0;
+        rpgdPlayer.intBonus = 0;
+        rpgdPlayer.spdBonus = 0;
+        rpgdPlayer.wisBonus = 0;
+        rpgdPlayer.vitBonus = 0;
+        rpgdPlayer.dexBonus = 0;
+        rpgdPlayer.chaBonus = 0;
+
+        // Apply equipment bonuses
+        for (const slot in rpgdPlayer.equipment) {
+          const item = rpgdPlayer.equipment[slot];
+          if (item) {
+            if (item.atk) rpgdPlayer.atkBonus += item.atk;
+            if (item.def) rpgdPlayer.defBonus += item.def;
+            if (item.int) rpgdPlayer.intBonus += item.int;
+            if (item.spd) rpgdPlayer.spdBonus += item.spd;
+            if (item.wis) rpgdPlayer.wisBonus += item.wis;
+            if (item.vit) rpgdPlayer.vitBonus += item.vit;
+            if (item.dex) rpgdPlayer.dexBonus += item.dex;
+            if (item.cha) rpgdPlayer.chaBonus += item.cha;
+          }
+        }
+
+        // Calculate new max HP (base + vit bonus + health crystals)
+        const newMaxHp = rpgdPlayer.baseMaxHp + 
+                        (rpgdPlayer.baseVit + rpgdPlayer.vitBonus - 10) * 5 + 
+                        rpgdPlayer.healthCrystalCount * 10;
+
+        // Handle max HP changes properly
+        if (rpgdPlayer.maxHp !== newMaxHp) {
+          const hpPercentage = rpgdPlayer.hp / rpgdPlayer.maxHp;
+          rpgdPlayer.maxHp = newMaxHp;
+          // Only adjust current HP proportionally if it wasn't a crystal use
+          if (rpgdPlayer.hp < rpgdPlayer.maxHp) {
+            rpgdPlayer.hp = Math.min(rpgdPlayer.maxHp, Math.floor(rpgdPlayer.maxHp * hpPercentage));
+          }
+        }
+
+        // Calculate final stats
+        rpgdPlayer.atk = rpgdPlayer.baseAtk + rpgdPlayer.atkBonus;
+        rpgdPlayer.def = rpgdPlayer.baseDef + rpgdPlayer.defBonus;
+        rpgdPlayer.int = rpgdPlayer.baseInt + rpgdPlayer.intBonus;
+        rpgdPlayer.spd = rpgdPlayer.baseSpd + rpgdPlayer.spdBonus;
+        rpgdPlayer.wis = rpgdPlayer.baseWis + rpgdPlayer.wisBonus;
+        rpgdPlayer.vit = rpgdPlayer.baseVit + rpgdPlayer.vitBonus;
+        rpgdPlayer.dex = rpgdPlayer.baseDex + rpgdPlayer.dexBonus;
+        rpgdPlayer.cha = rpgdPlayer.baseCha + rpgdPlayer.chaBonus;
+
+        // Ensure HP never exceeds max
+        if (rpgdPlayer.hp > rpgdPlayer.maxHp) {
+          rpgdPlayer.hp = rpgdPlayer.maxHp;
+        }
+      }
+
+      function rpgdUpdateStats() {
+        // Player stats
+        document.getElementById('rpgd-player-level').textContent = rpgdPlayer.level;
+        document.getElementById('rpgd-player-xp').textContent = rpgdPlayer.xp;
+        document.getElementById('rpgd-player-next-level').textContent = rpgdPlayer.nextLevel;
+        document.getElementById('rpgd-xp-bar').style.width = `${(rpgdPlayer.xp / rpgdPlayer.nextLevel) * 100}%`;
+        
+        // HP and HP bar
+        document.getElementById('rpgd-player-hp-info').textContent = rpgdPlayer.hp;
+        document.getElementById('rpgd-player-max-hp-info').textContent = rpgdPlayer.maxHp;
+        document.getElementById('rpgd-hp-bar').style.width = `${(rpgdPlayer.hp / rpgdPlayer.maxHp) * 100}%`;
+        
+        // Base stats with equipment bonuses
+        document.getElementById('rpgd-player-atk-info').textContent = rpgdPlayer.baseAtk;
+        document.getElementById('rpgd-player-atk-bonus').textContent = rpgdPlayer.atkBonus > 0 ? ` (+${rpgdPlayer.atkBonus})` : '';
+        
+        document.getElementById('rpgd-player-def-info').textContent = rpgdPlayer.baseDef;
+        document.getElementById('rpgd-player-def-bonus').textContent = rpgdPlayer.defBonus > 0 ? ` (+${rpgdPlayer.defBonus})` : '';
+        
+        document.getElementById('rpgd-player-int-info').textContent = rpgdPlayer.baseInt;
+        document.getElementById('rpgd-player-int-bonus').textContent = rpgdPlayer.intBonus > 0 ? ` (+${rpgdPlayer.intBonus})` : '';
+        
+        document.getElementById('rpgd-player-spd-info').textContent = rpgdPlayer.baseSpd;
+        document.getElementById('rpgd-player-spd-bonus').textContent = rpgdPlayer.spdBonus > 0 ? ` (+${rpgdPlayer.spdBonus})` : '';
+        
+        document.getElementById('rpgd-player-wis-info').textContent = rpgdPlayer.baseWis;
+        document.getElementById('rpgd-player-wis-bonus').textContent = rpgdPlayer.wisBonus > 0 ? ` (+${rpgdPlayer.wisBonus})` : '';
+        
+        document.getElementById('rpgd-player-vit-info').textContent = rpgdPlayer.baseVit;
+        document.getElementById('rpgd-player-vit-bonus').textContent = rpgdPlayer.vitBonus > 0 ? ` (+${rpgdPlayer.vitBonus})` : '';
+        
+        document.getElementById('rpgd-player-dex-info').textContent = rpgdPlayer.baseDex;
+        document.getElementById('rpgd-player-dex-bonus').textContent = rpgdPlayer.dexBonus > 0 ? ` (+${rpgdPlayer.dexBonus})` : '';
+        
+        document.getElementById('rpgd-player-cha-info').textContent = rpgdPlayer.baseCha;
+        document.getElementById('rpgd-player-cha-bonus').textContent = rpgdPlayer.chaBonus > 0 ? ` (+${rpgdPlayer.chaBonus})` : '';
+        
+        // Battle stats
+        document.getElementById('rpgd-player-hp').textContent = `${rpgdPlayer.hp}/${rpgdPlayer.maxHp}`;
+        
+        if (enemy.name) {
+          document.getElementById('rpgd-enemy-name').textContent = enemy.name;
+          document.getElementById('rpgd-enemy-hp').textContent = `${enemy.hp}/${enemy.maxHp}`;
+        }
+        
+        document.getElementById('rpgd-shop-gold').textContent = rpgdPlayer.gold;
+        document.getElementById('rpgd-inventory-gold').textContent = rpgdPlayer.gold;
+        document.getElementById('rpgd-sell-gold').textContent = rpgdPlayer.gold;
+        
+        rpgdUpdateHealthBars();
+      }
+
+      function rpgdUpdateHealthBars() {
+        const playerHealthPercent = (rpgdPlayer.hp / rpgdPlayer.maxHp) * 100;
+        const enemyHealthPercent = (enemy.hp / enemy.maxHp) * 100;
+        
+        document.getElementById("rpgd-player-health-bar").style.width = `${playerHealthPercent}%`;
+        document.getElementById("rpgd-enemy-health-bar").style.width = `${enemyHealthPercent}%`;
+      }
+
+      // Hexagon map generation
+      function rpgdGenerateDungeon() {
+        const container = document.getElementById("rpgd-dungeon-container");
+        if (!container) return;
+        
+        container.innerHTML = "";
+
+        if (floor > 10) {
+          container.style.backgroundColor = "#711d93";
+        } else {
+          container.style.backgroundColor = "#4e4e4e";
+        }
+
+        const emptyTiles = rpgdGenerateRandomEmptyTiles();
+
+        // Create hex grid
+        for (let q = -gridRadius; q <= gridRadius; q++) {
+          const column = document.createElement("div");
+          column.classList.add("rpgd-column");
+
+          for (let r = -gridRadius; r <= gridRadius; r++) {
+            const s = -q - r;
+
+            if (Math.abs(s) <= gridRadius) {
+              const hex = document.createElement("div");
+              hex.classList.add("rpgd-hexagon");
+
+              if (emptyTiles.has(`${q},${r}`)) {
+                hex.classList.add("empty");
+              } else {
+                hex.classList.add("floor");
+                hex.dataset.q = q;
+                hex.dataset.r = r;
+              }
+
+              column.appendChild(hex);
+            }
+          }
+          container.appendChild(column);
+        }
+
+        // Add water tiles (1/3 chance for at least one, 1/9 for second)
+        if (Math.random() < 0.33) {
+          const floorTiles = Array.from(document.querySelectorAll(".rpgd-hexagon.floor"));
+          const validTiles = floorTiles.filter(tile => 
+            !tile.classList.contains("player") && 
+            !tile.classList.contains("enemy")
+          );
+          
+          if (validTiles.length > 0) {
+            const waterTile1 = validTiles[Math.floor(Math.random() * validTiles.length)];
+            waterTile1.classList.remove("floor");
+            waterTile1.classList.add("water");
+            
+            // 1/9 chance for second water tile
+            if (Math.random() < 0.11 && validTiles.length > 1) {
+              const remainingTiles = validTiles.filter(tile => tile !== waterTile1);
+              const waterTile2 = remainingTiles[Math.floor(Math.random() * remainingTiles.length)];
+              waterTile2.classList.remove("floor");
+              waterTile2.classList.add("water");
+            }
+          }
+        }
+
+        enemiesRemaining = rpgdDetermineEnemyCount(floor);
+
+        // Place player and enemies on the map
+        rpgdPlacePlayer();
+        rpgdPlaceEnemies();
+        
+        // Ensure connectivity
+        if (!rpgdAreAllEnemiesReachable()) {
+          rpgdGenerateDungeon(); // Regenerate if no path exists
+        } else {
+          rpgdUpdateStats(); // Update stats if path exists
+        }
+      }
+
+      function rpgdGenerateRandomEmptyTiles() {
+        const emptyTiles = new Set();
+        const maxEmptySpaces = 20;
+
+        while (emptyTiles.size < maxEmptySpaces) {
+          const q = Math.floor(Math.random() * (2 * gridRadius + 1)) - gridRadius;
+          const r = Math.floor(Math.random() * (2 * gridRadius + 1)) - gridRadius;
+          const s = -q - r;
+
+          if (Math.abs(s) <= gridRadius) {
+            emptyTiles.add(`${q},${r}`);
+          }
+        }
+        return emptyTiles;
+      }
+
+      function rpgdPlacePlayer(tile) {
+        if (currentPlayerTile) {
+          currentPlayerTile.classList.remove("player");
+          currentPlayerTile.innerHTML = "";
+          rpgdRemoveBorders();
+        }
+
+        // Select a random valid starting tile if no specific tile is provided
+        if (!tile) {
+          const validTiles = Array.from(
+            document.querySelectorAll(".rpgd-hexagon.floor:not(.enemy):not(.empty):not(.water)")
+          );
+          tile = validTiles[Math.floor(Math.random() * validTiles.length)];
+        }
+
+        currentPlayerTile = tile || document.querySelector(".rpgd-hexagon.floor:not(.empty)");
+        
+        // Check what type of tile we're moving to
+        if (currentPlayerTile.classList.contains("enemy")) {
+          inCombat = true;
+          rpgdShowScreen("rpgd-combat-screen");
+          rpgdEnableButtons();
+          rpgdUpdateEnemyStats();
+          rpgdLogAction(`A wild ${enemy.name} appears!`);
+          return;
+        }
+
+        // Immediately update tile to player tile
+        currentPlayerTile.classList.add("player");
+        currentPlayerTile.innerHTML = "🤠";
+
+        const q = parseInt(currentPlayerTile.dataset.q);
+        const r = parseInt(currentPlayerTile.dataset.r);
+
+        rpgdApplyBorders(q, r);
+      }
+
+      function rpgdRemoveBorders() {
+        document.querySelectorAll(".rpgd-hexagon .rpgd-border").forEach((border) => {
+          if (border && border.parentElement) {
+            border.parentElement.onclick = null;
+            border.remove();
+          }
+        });
+      }
+
+      function rpgdApplyBorders(q, r) {
+        const neighbors = rpgdGetNeighbors(q, r);
+        neighbors.forEach(({ q, r }) => {
+          const neighborTile = document.querySelector(
+            `.rpgd-hexagon[data-q='${q}'][data-r='${r}']`
+          );
+          if (neighborTile && !neighborTile.classList.contains("empty")) {
+            const borderDiv = document.createElement("div");
+            borderDiv.classList.add("rpgd-border");
+            neighborTile.appendChild(borderDiv);
+            
+            // Clear any existing click handler
+            neighborTile.onclick = null;
+            
+            if (neighborTile.classList.contains("water") && !neighborTile.classList.contains("fished-out")) {
+              // Initialize fish count if not already set
+              if (!neighborTile.dataset.fishCount) {
+                neighborTile.dataset.fishCount = Math.floor(Math.random() * 3) + 1; // 1-3 fish
+              }
+              
+              neighborTile.onclick = () => {
+                rpgdStartFishing(neighborTile);
+              };
+            } else if (neighborTile.classList.contains("floor")) {
+              neighborTile.onclick = () => rpgdPlacePlayer(neighborTile);
+            }
+          }
+        });
+      }
+
+      function rpgdGetNeighbors(q, r) {
+        const directions = [
+          { q: 1, r: 0 },
+          { q: -1, r: 0 },
+          { q: 0, r: 1 },
+          { q: 0, r: -1 },
+          { q: 1, r: -1 },
+          { q: -1, r: 1 },
+        ];
+        return directions.map((dir) => ({ q: q + dir.q, r: r + dir.r }));
+      }
+
+      function rpgdDetermineEnemyCount(floor) {
+        if (floor <= 5) {
+          return Math.floor(Math.random() * 3) + 1; // 1 to 3 enemies for floors 1-5
+        } else if (floor <= 10) {
+          return Math.floor(Math.random() * 3) + 3; // 3 to 5 enemies for floors 6-10
+        } else if (floor <= 15) {
+          return Math.floor(Math.random() * 3) + 5;
+        } else {
+          return Math.floor(Math.random() * 13) + 5;
+        }
+      }
+
+      function rpgdPlaceEnemies() {
+        const floorTiles = Array.from(document.querySelectorAll(".rpgd-hexagon.floor"));
+        const playerQ = parseInt(currentPlayerTile.dataset.q);
+        const playerR = parseInt(currentPlayerTile.dataset.r);
+
+        let enemiesPlaced = 0;
+
+        while (enemiesPlaced < enemiesRemaining) {
+          const randomTile =
+            floorTiles[Math.floor(Math.random() * floorTiles.length)];
+          const tileQ = parseInt(randomTile.dataset.q);
+          const tileR = parseInt(randomTile.dataset.r);
+
+          // Ensure the tile isn't the player's position or water
+          if ((tileQ === playerQ && tileR === playerR) || randomTile.classList.contains("water")) continue;
+
+          // Place enemy and count it
+          if (!randomTile.classList.contains("enemy")) {
+            randomTile.classList.add("enemy");
+            randomTile.innerHTML = "👹";
+            enemiesPlaced++;
+          }
+        }
+      }
+
+      function rpgdAreAllEnemiesReachable() {
+        const playerQ = parseInt(currentPlayerTile.dataset.q);
+        const playerR = parseInt(currentPlayerTile.dataset.r);
+
+        // Set to track visited cells
+        const visited = new Set();
+        rpgdDfs(playerQ, playerR, visited);
+
+        // Check if each enemy tile has been visited
+        const enemyTiles = document.querySelectorAll(".rpgd-hexagon.enemy");
+        for (const enemyTile of enemyTiles) {
+          const enemyKey = `${enemyTile.dataset.q},${enemyTile.dataset.r}`;
+          if (!visited.has(enemyKey)) {
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      function rpgdDfs(q, r, visited) {
+        const tileKey = `${q},${r}`;
+        if (visited.has(tileKey)) return;
+
+        visited.add(tileKey);
+
+        // Get the tile at (q, r)
+        const tile = document.querySelector(
+          `.rpgd-hexagon.floor[data-q='${q}'][data-r='${r}']`
+        );
+
+        if (!tile || tile.classList.contains("empty")) return;
+
+        // Explore each neighboring cell
+        for (const { q: nq, r: nr } of rpgdGetNeighbors(q, r)) {
+          const neighborTile = document.querySelector(
+            `.rpgd-hexagon.floor[data-q='${nq}'][data-r='${nr}']`
+          );
+
+          // Continue rpgdDfs only if the neighboring tile is a valid path
+          if (neighborTile && !neighborTile.classList.contains("empty")) {
+            rpgdDfs(nq, nr, visited);
+          }
+        }
+      }
+
+      function rpgdUpdateEnemyStats() {
+        const percentageRange = 20; // Stat variation range ±20%
+
+        // Filter available enemies based on the current floor number
+        let availableEnemies;
+        if (floor >= 20) {
+          // Floors 20<: Wyverns, Dark Elves, Crystal Spiders, and Golems
+          availableEnemies = rpgdEnemyTemplates.filter(
+            (enemy) =>
+              enemy.name === "Wyvern" ||
+              enemy.name === "Dark Elf" ||
+              enemy.name === "Crystal Spiders" ||
+              enemy.name === "Golem"
+          );
+        } else if (floor >= 16) {
+          // Floors 16-20: Crystal Spiders and Golems
+          availableEnemies = rpgdEnemyTemplates.filter(
+            (enemy) =>
+              enemy.name === "Crystal Spiders" ||
+              enemy.name === "Golem" ||
+              enemy.name === "Nature Sprites" ||
+              enemy.name === "Dire Wolves"
+          );
+        } else if (floor >= 13) {
+          // Floors 13-16: Nature Sprites and Dire Wolves
+          availableEnemies = rpgdEnemyTemplates.filter(
+            (enemy) => enemy.name === "Nature Sprites" || enemy.name === "Dire Wolves"
+          );
+        } else if (floor >= 10) {
+          // Floors 10-13: Dragons, Trolls, Orcs, and Warlocks
+          availableEnemies = rpgdEnemyTemplates.filter(
+            (enemy) =>
+              enemy.name === "Dragon" ||
+              enemy.name === "Troll" ||
+              enemy.name === "Orc" ||
+              enemy.name === "Warlock"
+          );
+        } else if (floor >= 7) {
+          // Floors 7-10: Goblins, Skeletons, Orcs, and Warlocks
+          availableEnemies = rpgdEnemyTemplates.filter(
+            (enemy) =>
+              enemy.name === "Goblin" ||
+              enemy.name === "Skeleton" ||
+              enemy.name === "Orc" ||
+              enemy.name === "Warlock"
+          );
+        } else {
+          // Floors 1-4: Goblins and Skeletons only
+          availableEnemies = rpgdEnemyTemplates.filter(
+            (enemy) => enemy.name === "Goblin" || enemy.name === "Skeleton"
+          );
+        }
+
+        // Select a random enemy template
+        const template =
+          availableEnemies[Math.floor(Math.random() * availableEnemies.length)];
+
+        // Create a new enemy instance with randomized stats
+        enemy = rpgdRandomizeEnemyStats(template, percentageRange);
+        enemy.hp = enemy.maxHp; // Ensure current HP matches randomized max HP
+
+        // Update the UI with the new enemy stats
+        document.getElementById("rpgd-enemy-name").textContent = enemy.name;
+        document.getElementById("rpgd-enemy-hp").innerText = `${enemy.hp}/${enemy.maxHp}`;
+        rpgdUpdateHealthBars(); // Initialize health bars
+      }
+
+      function rpgdRandomizeStat(baseValue, percentageRange) {
+        const offset = baseValue * (percentageRange / 100);
+        return Math.round(baseValue + (Math.random() * 2 - 1) * offset);
+      }
+
+      function rpgdRandomizeEnemyStats(enemyTemplate, percentageRange) {
+        return {
+          name: enemyTemplate.name,
+          maxHp: rpgdRandomizeStat(enemyTemplate.maxHp, percentageRange),
+          hp: 0, // Will set this equal to maxHp after randomization
+          atk: rpgdRandomizeStat(enemyTemplate.atk, percentageRange),
+          def: rpgdRandomizeStat(enemyTemplate.def, percentageRange),
+          gold: enemyTemplate.gold,
+        };
+      }
+
+      function rpgdDisableButtons() {
+        const buttons = document.querySelectorAll(".rpgd-action-buttons button");
+        buttons.forEach((button) => {
+          button.disabled = true; // Disable each button
+        });
+      }
+
+      function rpgdEnableButtons() {
+        const buttons = document.querySelectorAll(".rpgd-action-buttons button");
+        buttons.forEach((button) => {
+          button.disabled = false; // Enable each button
+        });
+      }
+
+      function rpgdLogAction(message) {
+        const log = document.getElementById("rpgd-log");
+        if (log) {
+          log.innerHTML += message + "<br>";
+          log.scrollTop = log.scrollHeight;
+        }
+      }
+
+      function rpgdPlayerAttack() {
+        if (enemyTurnInProgress) return;
+        
+        rpgdDisableButtons();
+        let damage = Math.max(0, rpgdPlayer.atk - enemy.def);
+        enemy.hp -= damage;
+        rpgdLogAction(`Player attacks! Deals ${damage} damage.`);
+        rpgdUpdateHealthBars(); // Update health bars immediately
+        document.getElementById("rpgd-enemy-hp").innerText = `${enemy.hp}/${enemy.maxHp}`;
+
+        if (enemy.hp <= 0) {
+          rpgdHandleEnemyDefeat();
+          activeBuffs.atk = [];
+          activeBuffs.def = [];
+        } else {
+          enemyTurnInProgress = true;
+          setTimeout(() => {
+            rpgdEnemyAttack();
+            enemyTurnInProgress = false;
+            if (enemy.hp > 0) {
+              rpgdEnableButtons();
+            }
+          }, 500);
+        }
+        rpgdManageBuffs();
+        rpgdUpdateStats();
+      }
+
+      function rpgdHandleEnemyDefeat() {
+        rpgdLogAction("Enemy defeated!");
+        enemy.hp = 0;
+        rpgdUpdateHealthBars(); // Update health bars immediately
+        document.getElementById("rpgd-enemy-hp").innerText = `0/${enemy.maxHp}`;
+        rpgdDisableButtons(); // Disable buttons after enemy is defeated
+
+        // Show the continue button
+        document.getElementById("rpgd-continue-button").classList.remove("rpgd-hidden");
+        enemiesRemaining--;
+        rpgdPlayer.gold += enemy.gold;
+        rpgdGainXP(Math.floor(enemy.maxHp / 10));
+        rpgdUpdateStats();
+      }
+
+      function rpgdHandlePlayerDefeat() {
+        if (rpgdPlayer.lives > 0) {
+          rpgdPlayer.lives--;
+          rpgdPlayer.hp = Math.round(rpgdPlayer.maxHp * 0.5);
+          rpgdLogAction("Player has been brought back to life!");
+          rpgdUpdateHealthBars(); // Update health bars immediately
+          document.getElementById("rpgd-player-hp").innerText = `${rpgdPlayer.hp}/${rpgdPlayer.maxHp}`;
+          return;
+        } else if (rpgdPlayer.lives <= 0) {
+          rpgdLogAction("Player defeated!");
+          rpgdPlayer.hp = 0;
+          rpgdUpdateHealthBars(); // Update health bars immediately
+          document.getElementById("rpgd-player-hp").innerText = `0/${rpgdPlayer.maxHp}`;
+          rpgdDisableButtons(); // Disable buttons after enemy is defeated
+
+          // Show the continue button
+          document.getElementById("rpgd-continue-button").classList.remove("rpgd-hidden");
+        }
+      }
+
+        function rpgdGainXP(amount) {
+            rpgdPlayer.xp += amount;
+            if (rpgdPlayer.xp >= rpgdPlayer.nextLevel) {
+                rpgdPlayer.xp -= rpgdPlayer.nextLevel;
+                rpgdPlayer.level++;
+                rpgdPlayer.nextLevel = Math.floor(rpgdPlayer.nextLevel * 1.2);
+                rpgdPlayer.statPoints += 3;
+                rpgdPlayer.hp = rpgdPlayer.maxHp; // Full heal on level up
+                rpgdLogAction(`Level up! You are now level ${rpgdPlayer.level}.`);
+                
+                // Show stat allocation panel
+                document.getElementById("rpgd-stat-allocation").style.display = "block";
+                document.getElementById("rpgd-stat-points").textContent = rpgdPlayer.statPoints;
+            }
+            rpgdUpdateStats();
+        }
+
+      function rpgdContinueBattle() {
+        // Clear the combat log
+        const log = document.getElementById("rpgd-log");
+        if (log) log.innerHTML = '';
+
+        if (rpgdPlayer.hp <= 0) {
+          rpgdShowScreen("rpgd-defeat-screen");
+          return;
+        }
+
+        // Hide combat screen regardless of whether there are enemies left
+        document.getElementById("rpgd-combat-screen").classList.remove("active");
+        inCombat = false;
+        
+        if (enemiesRemaining <= 0) {
+          // Show shop screen
+          rpgdShowScreen("rpgd-shop-screen");
+          // Hide map container
+          document.getElementById("rpgd-map-screen").classList.remove("active");
+          // Generate new dungeon (but don't show it yet)
+          rpgdGenerateDungeon();
+        } else {
+          // Immediately update tile to player tile
+          currentPlayerTile.classList.remove("enemy");
+          currentPlayerTile.classList.add("player");
+          currentPlayerTile.innerHTML = "🤠";
+          
+          // Show map screen and hide overlay
+          rpgdShowScreen("rpgd-map-screen");
+          document.getElementById("rpgd-map-overlay").classList.add("rpgd-hidden");
+          
+          // Clear enemy stats from combat screen
+          enemy = {};
+          document.getElementById("rpgd-enemy-name").textContent = "Enemy";
+          document.getElementById("rpgd-enemy-hp").textContent = "0/0";
+          
+          // Reapply borders
+          const q = parseInt(currentPlayerTile.dataset.q);
+          const r = parseInt(currentPlayerTile.dataset.r);
+          rpgdApplyBorders(q, r);
+        }
+        
+        // Hide continue button
+        document.getElementById("rpgd-continue-button").classList.add("rpgd-hidden");
+      }
+
+      function rpgdContinueToNextFloor() {
+        // Hide shop screen
+        document.getElementById("rpgd-shop-screen").classList.remove("active");
+        
+        // Show map screen
+        rpgdShowScreen("rpgd-map-screen");
+        
+        // Increment floor and update display
+        floor++;
+        document.getElementById("rpgd-floor-number").textContent = `Floor: ${floor}`;
+        
+        // Reset shop stock
+        shopStock = {
+          item1: { current: 1, max: 1 },
+          item2: { current: 1, max: 1 },
+          item3: { current: 10, max: 10 },
+          item4: { current: 1, max: 1 },
+          item5: { current: 1, max: 1 }
+        };
+        
+        // Generate new dungeon
+        rpgdGenerateDungeon();
+      }
+
+      function rpgdRestartGame() {
+        // Reset player stats
+        rpgdPlayer.level = 1;
+        rpgdPlayer.xp = 0;
+        rpgdPlayer.nextLevel = 100;
+        rpgdPlayer.healthCrystalCount = 0;
+        rpgdPlayer.baseMaxHp = 150;
+        rpgdPlayer.maxHp = 150;
+        rpgdPlayer.hp = 150;
+        rpgdPlayer.baseAtk = 15;
+        rpgdPlayer.atk = 15;
+        rpgdPlayer.atkBonus = 0;
+        rpgdPlayer.baseDef = 0;
+        rpgdPlayer.def = 0;
+        rpgdPlayer.defBonus = 0;
+        rpgdPlayer.baseInt = 10;
+        rpgdPlayer.int = 10;
+        rpgdPlayer.intBonus = 0;
+        rpgdPlayer.baseSpd = 10;
+        rpgdPlayer.spd = 10;
+        rpgdPlayer.spdBonus = 0;
+        rpgdPlayer.baseWis = 10;
+        rpgdPlayer.wis = 10;
+        rpgdPlayer.wisBonus = 0;
+        rpgdPlayer.baseVit = 10;
+        rpgdPlayer.vit = 10;
+        rpgdPlayer.vitBonus = 0;
+        rpgdPlayer.baseDex = 10;
+        rpgdPlayer.dex = 10;
+        rpgdPlayer.dexBonus = 0;
+        rpgdPlayer.baseCha = 10;
+        rpgdPlayer.cha = 10;
+        rpgdPlayer.chaBonus = 0;
+        rpgdPlayer.gold = 15;
+        rpgdPlayer.lives = 0;
+        rpgdPlayer.statPoints = 0;
+        rpgdPlayer.inventory = [
+          { 
+            id: 'health_potion_initial', 
+            name: "Health Potion", 
+            type: rpgdItemTypes.CONSUMABLE, 
+            heal: 20, 
+            stackable: true, 
+            count: 5, 
+            sellPrice: 1 
+          }
+        ];
+        for (const slot in rpgdPlayer.equipment) {
+          rpgdPlayer.equipment[slot] = null;
+        }
+
+        // Reset item counts
+        for (let itemName in itemCounts) {
+          delete itemCounts[itemName];
+        }
+
+        // Reset shop levels and stock
+        for (let itemId in itemLevels) {
+          itemLevels[itemId] = 0; // Reset levels to 0
+        }
+        
+        shopStock = {
+          item1: { current: 1, max: 1 },
+          item2: { current: 1, max: 1 },
+          item3: { current: 10, max: 10 },
+          item4: { current: 1, max: 1 },
+          item5: { current: 1, max: 1 }
+        };
+
+        // Reset floor level
+        floor = 1;
+        document.getElementById("rpgd-floor-number").textContent = `Floor: ${floor}`;
+
+        rpgdGenerateDungeon();
+        rpgdShowScreen("rpgd-combat-screen");
+        rpgdShowScreen("rpgd-map-screen");
+        rpgdUpdateStats();
+        rpgdUpdateEquipmentDisplay();
+        rpgdUpdateInventoryDisplay();
+      }
+
+      function rpgdEnemyAttack() {
+        let damage = Math.max(0, enemy.atk - rpgdPlayer.def);
+        rpgdPlayer.hp -= damage;
+        rpgdLogAction(`Enemy attacks! Deals ${damage} damage.`);
+        rpgdUpdateHealthBars(); // Update health bars immediately
+        document.getElementById("rpgd-player-hp").innerText = `${rpgdPlayer.hp}/${rpgdPlayer.maxHp}`;
+        
+        if (rpgdPlayer.hp <= 0) {
+          rpgdHandlePlayerDefeat();
+        }
+        rpgdUpdateStats();
+      }
+
+      function rpgdManageBuffs() {
+        // Decrement buff durations and remove expired buffs
+        ["atk", "def"].forEach((stat) => {
+          activeBuffs[stat] = activeBuffs[stat].filter((buff) => {
+            buff.turnsLeft--;
+            if (buff.turnsLeft > 0) {
+              return true; // Keep active buffs
+            } else {
+              rpgdPlayer[stat] -= buff.value; // Remove buff effect
+              rpgdLogAction(`${stat.toUpperCase()} boost of ${buff.value} has worn off.`);
+              return false; // Remove expired buff
+            }
+          });
+        });
+      }
+
+      function rpgdApplyBuff(stat, value, duration) {
+        // Apply the buff and add to activeBuffs
+        rpgdPlayer[stat] += value;
+        activeBuffs[stat].push({ value, turnsLeft: duration });
+        rpgdLogAction(
+          `${stat.toUpperCase()} increased by ${value} for ${duration} turns.`
+        );
+        rpgdCalculateStats();
+        rpgdUpdateStats();
+      }
+
+      function rpgdShowScreen(screenId) {
+        document.querySelectorAll(".rpgd-screen").forEach((screen) => {
+          screen.classList.remove("active");
+        });
+        
+        const screenElement = document.getElementById(screenId);
+        if (screenElement) {
+          screenElement.classList.add("active");
+        }
+
+        if (screenId === "rpgd-map-screen") {
+          // Hide fishing log when returning to map
+          document.getElementById("rpgd-fishing-log-panel").classList.remove("active");
+          
+          // Reset borders when returning to map screen
+          const q = parseInt(currentPlayerTile.dataset.q);
+          const r = parseInt(currentPlayerTile.dataset.r);
+          rpgdApplyBorders(q, r);
+          
+          // Show or hide map overlay based on whether we're in combat
+          const overlay = document.getElementById("rpgd-map-overlay");
+          if (overlay) {
+            overlay.classList.add("rpgd-hidden");
+          }
+        } else if (screenId === "rpgd-combat-screen") {
+          // Show combat screen and hide fishing log
+          document.getElementById("rpgd-fishing-log-panel").classList.remove("active");
+          
+          // Show map overlay during combat
+          inCombat = true;
+          const overlay = document.getElementById("rpgd-map-overlay");
+          if (overlay) {
+            overlay.classList.remove("rpgd-hidden");
+          }
+        } else if (screenId === "rpgd-shop-screen") {
+          // Hide fishing log in shop
+          document.getElementById("rpgd-fishing-log-panel").classList.remove("active");
+          
+          // Select a random item5 using weighted randomization
+          selectedItem5 = rpgdGetWeightedRandomItem(rpgdShopItems["item5"]);
+          
+          // Determine available upgrades based on equipped items
+          rpgdUpdateShopItems();
+          
+          // Update all shop buttons
+          for (let itemId in rpgdShopItems) {
+            rpgdUpdateButtonText(itemId);
+          }
+          
+          document.getElementById("rpgd-shop-gold").textContent = rpgdPlayer.gold; // Update gold display in shop
+        } else if (screenId === "rpgd-fishing-screen") {
+          // Show fishing log when fishing
+          document.getElementById("rpgd-fishing-log-panel").classList.add("active");
+        }
+      }
+
+      // Fishing game functions
+      function rpgdStartFishing(waterTile) {
+        currentWaterTile = waterTile;
+        fishRemaining = parseInt(waterTile.dataset.fishCount) || 0;
+        fishingCastsRemaining = 3; // Reset casts when starting
+        
+        if (fishRemaining <= 0) {
+          rpgdLogFishingAction("No fish left in this spot!");
+          return;
+        }
+        
+        // Show fishing screen and fishing log panel
+        rpgdShowScreen("rpgd-fishing-screen");
+        document.getElementById("rpgd-fishing-log-panel").classList.add("active");
+        
+        document.getElementById("rpgd-fishing-progress").style.width = "40%";
+        
+        // Clear fishing log when starting a new spot
+        document.getElementById("rpgd-fishing-log").innerHTML = ``;
+        
+        fishingProgress = 40;
+        
+        // Clear any existing game state
+        clearInterval(circleInterval);
+        clearInterval(progressInterval);
+        fishingGameActive = false;
+        currentCircle = null;
+        currentFishTarget = null;
+        
+        // Update cast button - no stop button visible initially
+        document.getElementById("rpgd-start-fishing").classList.remove("rpgd-hidden");
+        document.getElementById("rpgd-stop-fishing").classList.add("rpgd-hidden");
+        rpgdUpdateCastButton();
+      }
+
+      function rpgdUpdateCastButton() {
+        const btn = document.getElementById("rpgd-start-fishing");
+        btn.textContent = `Cast Line (${fishingCastsRemaining})`;
+        btn.disabled = fishingCastsRemaining <= 0;
+      }
+
+      function rpgdStartFishingGame() {
+        if (fishingCastsRemaining <= 0) return;
+        
+        // Determine what fish we're trying to catch this attempt
+        currentFishTarget = rpgdGetWeightedRandomItem(fishingItems);
+        
+        fishingGameActive = true;
+        fishingProgress = 40;
+        currentCircle = null;
+        
+        // Clear any existing circle
+        const gameArea = document.querySelector(".rpgd-fishing-game-area");
+        gameArea.innerHTML = '<div class="rpgd-fishing-target-zone"></div>';
+        
+        // Hide both buttons during the game
+        document.getElementById("rpgd-start-fishing").classList.add("rpgd-hidden");
+        document.getElementById("rpgd-stop-fishing").classList.add("rpgd-hidden");
+        
+        // Use one cast
+        fishingCastsRemaining--;
+        
+        rpgdLogFishingAction(`Something is hooked!`);
+        
+        // Start progress depletion
+        progressInterval = setInterval(() => {
+          if (fishingGameActive) {
+            fishingProgress = Math.max(0, fishingProgress - 0.5);
+            document.getElementById("rpgd-fishing-progress").style.width = `${fishingProgress}%`;
+            
+            if (fishingProgress <= 0) {
+              rpgdLogFishingAction("Fish got away!");
+              rpgdEndFishingAttempt();
+            }
+          }
+        }, 200);
+        
+        // Start spawning circles with a slight delay
+        setTimeout(() => {
+          if (fishingGameActive) {
+            rpgdSpawnCircle();
+          }
+        }, 500);
+      }
+
+      function rpgdSpawnCircle() {
+        if (!fishingGameActive || !currentFishTarget) return;
+        
+        // Don't spawn new circle if one already exists
+        if (currentCircle && currentCircle.element && currentCircle.element.parentNode) {
+          return;
+        }
+        
+        const circle = document.createElement("div");
+        circle.className = "rpgd-fishing-circle";
+        circle.style.width = "10px";
+        circle.style.height = "10px";
+        
+        // Base speed affected by fish difficulty (higher difficulty = faster)
+        const baseSpeed = 4;
+        const difficultyMultiplier = currentFishTarget.difficulty || 1;
+        const speed = baseSpeed * difficultyMultiplier + (Math.random() * 0.5); // Small random variation
+        
+        const gameArea = document.querySelector(".rpgd-fishing-game-area");
+        gameArea.appendChild(circle);
+        
+        currentCircle = {
+          element: circle,
+          size: 10,
+          speed: speed,
+          attempted: false,
+          growing: true
+        };
+        
+        // Start circle growth with consistent timing
+        const growthInterval = setInterval(() => {
+          if (!fishingGameActive || !currentCircle || !currentCircle.growing) {
+            clearInterval(growthInterval);
+            return;
+          }
+          
+          currentCircle.size += currentCircle.speed;
+          currentCircle.element.style.width = `${currentCircle.size}px`;
+          currentCircle.element.style.height = `${currentCircle.size}px`;
+          
+          // Remove circle if it grows past the game area (240px)
+          if (currentCircle.size > 245) {
+            currentCircle.growing = false;
+            
+            if (!currentCircle.attempted) {
+              currentCircle.element.classList.add("fail");
+              fishingProgress = Math.max(0, fishingProgress - 10);
+              document.getElementById("rpgd-fishing-progress").style.width = `${fishingProgress}%`;
+              
+              if (fishingProgress <= 0) {
+                rpgdLogFishingAction("Fish got away!");
+                rpgdEndFishingAttempt();
+                clearInterval(growthInterval);
+                return;
+              }
+            }
+            
+            setTimeout(() => {
+              if (currentCircle && currentCircle.element && currentCircle.element.parentNode) {
+                currentCircle.element.remove();
+              }
+              currentCircle = null;
+              
+              // Spawn new circle after delay if game still active
+              if (fishingGameActive) {
+                setTimeout(() => {
+                  if (fishingGameActive) {
+                    rpgdSpawnCircle();
+                  }
+                }, 300);
+              }
+            }, 500);
+            
+            clearInterval(growthInterval);
+          }
+        }, 50);
+      }
+
+      function rpgdUpdateFishingGame() {
+        // Update existing circles
+        activeCircles.forEach(circle => {
+          circle.size += 3;
+          if (circle.size >= 280) {
+            // Circle missed
+            if (!circle.attempted) {
+              fishingProgress = Math.max(0, fishingProgress - 15);
+              document.getElementById("rpgd-fishing-progress").style.width = `${fishingProgress}%`;
+              circle.element.classList.add("fail");
+            }
+            setTimeout(() => {
+              circle.element.remove();
+              activeCircles = activeCircles.filter(c => c !== circle);
+            }, 300);
+          } else {
+            circle.element.style.width = `${circle.size}px`;
+            circle.element.style.height = `${circle.size}px`;
+          }
+        });
+        
+        // Add new circle every second
+        if (Date.now() - (activeCircles[0]?.timestamp || 0) > 1000 && activeCircles.length < 3) {
+          const circle = document.createElement("div");
+          circle.className = "rpgd-fishing-inner-circle";
+          document.querySelector(".rpgd-fishing-circle-container").appendChild(circle);
+          
+          activeCircles.push({
+            element: circle,
+            size: 10,
+            attempted: false,
+            timestamp: Date.now()
+          });
+        }
+        
+        // Slowly decrease progress
+        if (fishAttempts > 0) {
+          fishingProgress = Math.max(0, fishingProgress - 0.5);
+          document.getElementById("rpgd-fishing-progress").style.width = `${fishingProgress}%`;
+          
+          if (fishingProgress <= 0) {
+            rpgdLogFishingAction(`The ${currentFish.name} got away!`);
+            const fishCount = parseInt(currentWaterTile.dataset.fishCount) - 1;
+            currentWaterTile.dataset.fishCount = fishCount;
+            rpgdEndFishing();
+          }
+        }
+      }
+
+      function rpgdHandleFishingKeyPress(e) {
+        if (e.code === 'Space' && fishingGameActive && currentCircle && !currentCircle.attempted && currentCircle.growing) {
+          e.preventDefault();
+          
+          currentCircle.attempted = true;
+          currentCircle.growing = false;
+          const size = currentCircle.size;
+          
+          // Fixed target zone boundaries - dashed line is at 210px, game area border at 240px
+          const targetMin = 212; 
+          const targetMax = 240;
+          
+          // Check if circle is in target zone
+          if (size >= targetMin && size <= targetMax) {
+            currentCircle.element.classList.add("success");
+            fishingProgress = Math.min(100, fishingProgress + 25);
+            document.getElementById("rpgd-fishing-progress").style.width = `${fishingProgress}%`;
+            
+            if (fishingProgress >= 100) {
+              rpgdCatchFish();
+              return;
+            }
+          } else {
+            currentCircle.element.classList.add("fail");
+            fishingProgress = Math.max(0, fishingProgress - 10);
+            document.getElementById("rpgd-fishing-progress").style.width = `${fishingProgress}%`;
+            
+            if (fishingProgress <= 0) {
+              rpgdLogFishingAction("Fish got away!");
+              rpgdEndFishingAttempt();
+              return;
+            }
+          }
+          
+          // Remove circle after hit/miss
+          setTimeout(() => {
+            if (currentCircle && currentCircle.element && currentCircle.element.parentNode) {
+              currentCircle.element.remove();
+            }
+            currentCircle = null;
+            
+            // Spawn new circle after delay if game still active
+            if (fishingGameActive && fishingProgress > 0 && fishingProgress < 100) {
+              setTimeout(() => {
+                if (fishingGameActive) {
+                  rpgdSpawnCircle();
+                }
+              }, 200);
+            }
+          }, 500);
+        }
+      }
+
+      function rpgdCatchFish() {
+        fishingGameActive = false;
+        clearInterval(progressInterval);
+        
+        if (currentCircle && currentCircle.element && currentCircle.element.parentNode) {
+          currentCircle.element.remove();
+          currentCircle = null;
+        }
+        
+        // Use the predetermined fish target instead of random selection
+        const caughtFish = currentFishTarget;
+        
+        const newItem = {
+          ...caughtFish,
+          id: 'fish_' + Date.now() + Math.floor(Math.random() * 1000)
+        };
+        
+        rpgdPlayer.inventory.push(newItem);
+        rpgdUpdateInventoryDisplay();
+        
+        rpgdLogFishingAction(`You caught a ${newItem.name}!`);
+        
+        // Update fish count
+        fishRemaining--;
+        currentWaterTile.dataset.fishCount = fishRemaining;
+        
+        // Check if fishing spot is empty
+        if (fishRemaining <= 0) {
+          currentWaterTile.innerHTML = "";
+          currentWaterTile.classList.add("fished-out");
+          rpgdLogFishingAction("The pond is still...");
+        }
+        
+        // Clear the fish target
+        currentFishTarget = null;
+        
+        // Show appropriate button based on remaining casts and fish
+        rpgdEndFishingAttempt();
+      }
+
+      function rpgdStopFishing() {
+        fishingGameActive = false;
+        clearInterval(progressInterval);
+        
+        if (currentCircle && currentCircle.element && currentCircle.element.parentNode) {
+          currentCircle.element.remove();
+          currentCircle = null;
+        }
+        
+        // Clear the fish target
+        currentFishTarget = null;
+        
+        // Return to map
+        rpgdShowScreen("rpgd-map-screen");
+        
+        // Reapply borders
+        const q = parseInt(currentPlayerTile.dataset.q);
+        const r = parseInt(currentPlayerTile.dataset.r);
+        rpgdApplyBorders(q, r);
+      }
+
+      function rpgdEndFishingAttempt() {
+        fishingGameActive = false;
+        clearInterval(progressInterval);
+        
+        if (currentCircle && currentCircle.element && currentCircle.element.parentNode) {
+          currentCircle.element.remove();
+          currentCircle = null;
+        }
+        
+        // Clear the fish target
+        currentFishTarget = null;
+        
+        // Show appropriate buttons based on remaining casts and fish
+        if (fishingCastsRemaining > 0 && fishRemaining > 0) {
+          document.getElementById("rpgd-start-fishing").classList.remove("rpgd-hidden");
+          document.getElementById("rpgd-stop-fishing").classList.add("rpgd-hidden");
+          rpgdUpdateCastButton();
+        } else {
+          // No more casts or no more fish - only show stop button
+          document.getElementById("rpgd-start-fishing").classList.add("rpgd-hidden");
+          document.getElementById("rpgd-stop-fishing").classList.remove("rpgd-hidden");
+        }
+      }
+
+      function rpgdEndFishing() {
+        fishingGameActive = false;
+        clearInterval(circleInterval);
+        clearInterval(progressInterval);
+        
+        // Clear circles
+        activeCircles.forEach(c => c.element.remove());
+        activeCircles = [];
+        
+        // Return to map
+        rpgdShowScreen("rpgd-map-screen");
+        
+        // Reapply borders
+        const q = parseInt(currentPlayerTile.dataset.q);
+        const r = parseInt(currentPlayerTile.dataset.r);
+        rpgdApplyBorders(q, r);
+      }
+
+      function rpgdLogFishingAction(message) {
+        const log = document.getElementById("rpgd-fishing-log");
+        if (log) {
+          log.innerHTML += message + "<br>";
+          log.scrollTop = log.scrollHeight;
+        }
+      }
+
+      // Shop functions
+      const rpgdShopItems = {
+        item1: [
+          { name: "Stick", price: 3, atk: 1, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 1 },
+          { name: "Copper Sword", price: 5, atk: 2, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 2 },
+          { name: "Iron Sword", price: 7, atk: 4, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 3 },
+          { name: "Steel Sword", price: 10, atk: 5, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 4 },
+          { name: "Gold Sword", price: 15, atk: 8, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 6 },
+          { name: "Silver Sword", price: 25, atk: 10, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 10 },
+          { name: "Platinum Sword", price: 40, atk: 12, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 16 },
+          { name: "Mythril Sword", price: 70, atk: 15, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 28 },
+          { name: "Titanium Sword", price: 100, atk: 30, type: rpgdItemTypes.EQUIPMENT, slot: "rightHand", sellPrice: 40 },
+        ],
+        item2: [
+          { name: "Wooden Shield", price: 3, def: 1, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 1 },
+          { name: "Copper Shield", price: 5, def: 2, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 2 },
+          { name: "Iron Shield", price: 7, def: 3, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 3 },
+          { name: "Steel Shield", price: 10, def: 4, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 4 },
+          { name: "Gold Shield", price: 15, def: 5, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 6 },
+          { name: "Silver Shield", price: 25, def: 6, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 10 },
+          { name: "Platinum Shield", price: 40, def: 8, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 16 },
+          { name: "Mythril Shield", price: 70, def: 10, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 28 },
+          { name: "Titanium Shield", price: 100, def: 13, type: rpgdItemTypes.EQUIPMENT, slot: "leftHand", sellPrice: 40 },
+        ],
+        item3: { name: "Health Potion", price: 2, type: rpgdItemTypes.CONSUMABLE, heal: 20, stackable: true, sellPrice: 1 },
+        item4: { name: "Health Crystal", price: 10, type: rpgdItemTypes.CONSUMABLE, stackable: true, sellPrice: 5 },
+        item5: [
+          { name: "Pocket Shield", price: 5, def: 10, weight: 15, type: rpgdItemTypes.COMBAT, sellPrice: 2 },
+          { name: "Performance Enhancing Supplements", price: 10, atk: 15, weight: 15, type: rpgdItemTypes.COMBAT, sellPrice: 4 },
+          { name: "Smoke Bomb", price: 5, weight: 15, type: rpgdItemTypes.COMBAT, sellPrice: 2 },
+          { name: "Revival Jelly", price: 20, weight: 5, type: rpgdItemTypes.COMBAT, sellPrice: 8 },
+          { name: "Double Strike Talisman", price: 15, weight: 10, type: rpgdItemTypes.COMBAT, sellPrice: 6 },
+          { name: "Full Restore", price: 10, weight: 20, type: rpgdItemTypes.COMBAT, sellPrice: 4 },
+          { name: "Improvised Explosives", price: 10, atk: 40, weight: 20, type: rpgdItemTypes.COMBAT, sellPrice: 4 },
+        ],
+      };
+
+      function rpgdGetWeightedRandomItem(items) {
+        const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+        let randomNum = Math.random() * totalWeight;
+
+        for (const item of items) {
+          randomNum -= item.weight;
+          if (randomNum <= 0) {
+            return item;
+          }
+        }
+        return null;
+      }
+
+      function rpgdUpdateShopItems() {
+        // Check what the player has equipped to determine available upgrades
+        const rightHand = rpgdPlayer.equipment.rightHand;
+        const leftHand = rpgdPlayer.equipment.leftHand;
+        
+        // Find the highest level weapon the player has
+        let weaponLevel = 0;
+        if (rightHand) {
+          const weaponIndex = rpgdShopItems.item1.findIndex(item => item.name === rightHand.name);
+          if (weaponIndex >= 0) {
+            weaponLevel = weaponIndex + 1;
+          }
+        }
+        
+        // Find the highest level shield the player has
+        let shieldLevel = 0;
+        if (leftHand) {
+          const shieldIndex = rpgdShopItems.item2.findIndex(item => item.name === leftHand.name);
+          if (shieldIndex >= 0) {
+            shieldLevel = shieldIndex + 1;
+          }
+        }
+        
+        // Update shop items based on player's equipment
+        shopItems = {
+          item1: weaponLevel < rpgdShopItems.item1.length ? rpgdShopItems.item1[weaponLevel] : null,
+          item2: shieldLevel < rpgdShopItems.item2.length ? rpgdShopItems.item2[shieldLevel] : null,
+          item3: rpgdShopItems.item3,
+          item4: rpgdShopItems.item4,
+          item5: selectedItem5
+        };
+      }
+
+      function rpgdGetNextItem(itemId) {
+        if (itemId === "item1" || itemId === "item2") {
+          return shopItems[itemId];
+        } else if (itemId === "item5") {
+          return selectedItem5;
+        } else {
+          return rpgdShopItems[itemId];
+        }
+      }
+
+      function rpgdUpdateButtonText(itemId) {
+        const button = document.getElementById(`rpgd-${itemId}`);
+        if (!button) return;
+        
+        const nextItem = rpgdGetNextItem(itemId);
+        const stock = shopStock[itemId];
+
+        if (itemId === "item1" || itemId === "item2") {
+          if (nextItem && stock.current > 0) {
+            button.textContent = `${nextItem.name} - ${nextItem.price} Gold (x${stock.current})`;
+            button.disabled = false;
+          } else {
+            button.textContent = "Sold Out (x0)";
+            button.disabled = true;
+          }
+        } else if (itemId === "item5") {
+          if (nextItem && stock.current > 0) {
+            button.textContent = `${nextItem.name} - ${nextItem.price} Gold (x${stock.current})`;
+            button.disabled = false;
+          } else {
+            button.textContent = "Sold Out (x0)";
+            button.disabled = true;
+          }
+        } else {
+          if (stock.current > 0) {
+            button.textContent = `${nextItem.name} - ${nextItem.price} Gold (x${stock.current})`;
+            button.disabled = false;
+          } else {
+            button.textContent = "Sold Out (x0)";
+            button.disabled = true;
+          }
+        }
+      }
+
+      function rpgdUpgradeItem(itemId) {
+        const nextItem = rpgdGetNextItem(itemId);
+        const stock = shopStock[itemId];
+        
+        // Check if player can afford the item and if it's in stock
+        if (!nextItem || rpgdPlayer.gold < nextItem.price || stock.current <= 0) {
+          alert("Cannot purchase this item!");
+          return;
+        }
+
+        // Deduct gold immediately
+        rpgdPlayer.gold -= nextItem.price;
+        stock.current--;
+        
+        // Update gold displays
+        document.getElementById("rpgd-inventory-gold").textContent = rpgdPlayer.gold;
+        document.getElementById("rpgd-shop-gold").textContent = rpgdPlayer.gold;
+        document.getElementById("rpgd-sell-gold").textContent = rpgdPlayer.gold;
+        
+        // Create a new item instance with unique ID
+        const newItem = {
+          ...nextItem,
+          id: Date.now() + Math.floor(Math.random() * 1000) // Ensure unique ID
+        };
+
+        // Add to inventory
+        if (nextItem.stackable) {
+          const existingItem = rpgdPlayer.inventory.find(item => item.name === nextItem.name);
+          if (existingItem) {
+            existingItem.count = (existingItem.count || 1) + 1;
+          } else {
+            newItem.count = 1;
+            rpgdPlayer.inventory.push(newItem);
+          }
+        } else {
+          rpgdPlayer.inventory.push(newItem);
+        }
+        
+        // Special case for health crystals
+        if (itemId === "item4") {
+          // Do nothing - effect happens when used
+        }
+
+        // Update displays
+        rpgdUpdateInventoryDisplay();
+        rpgdUpdateButtonText(itemId);
+        rpgdUpdateStats();
+      }
+
+      function rpgdAllocateStat(stat) {
+        if (rpgdPlayer.statPoints > 0) {
+          rpgdPlayer.statPoints--;
+          rpgdPlayer[`base${stat.charAt(0).toUpperCase() + stat.slice(1)}`]++;
+          document.getElementById("rpgd-stat-points").textContent = rpgdPlayer.statPoints;
+          rpgdCalculateStats();
+          rpgdUpdateStats();
+        }
+      }
+
+      function rpgdConfirmStatAllocation() {
+        document.getElementById("rpgd-stat-allocation").style.display = "none";
+      }
+
+      function rpgdOpenSellMenu() {
+        rpgdShowScreen("rpgd-sell-screen");
+        const sellList = document.getElementById("rpgd-sell-list");
+        sellList.innerHTML = '';
+        
+        // Add inventory items
+        rpgdPlayer.inventory.forEach((item, index) => {
+          const itemElement = document.createElement("div");
+          itemElement.className = "rpgd-inventory-item";
+          
+          const itemName = document.createElement("span");
+          itemName.textContent = item.name;
+          if (item.count > 1) {
+            const countSpan = document.createElement("span");
+            countSpan.className = "rpgd-item-count";
+            countSpan.textContent = `x${item.count}`;
+            itemName.appendChild(countSpan);
+          }
+          
+          const sellButton = document.createElement("button");
+          sellButton.className = "rpgd-sell-button";
+          sellButton.textContent = `Sell (${item.sellPrice || 1} Gold)`;
+          sellButton.onclick = (e) => {
+            e.stopPropagation();
+            rpgdSellItem(index);
+          };
+          
+          itemElement.appendChild(itemName);
+          itemElement.appendChild(sellButton);
+          sellList.appendChild(itemElement);
+        });
+        
+        // Add equipped items
+        for (const slot in rpgdPlayer.equipment) {
+          const item = rpgdPlayer.equipment[slot];
+          if (item) {
+            const itemElement = document.createElement("div");
+            itemElement.className = "rpgd-inventory-item";
+            
+            const itemName = document.createElement("span");
+            itemName.textContent = `${item.name} (Equipped)`;
+            
+            const sellButton = document.createElement("button");
+            sellButton.className = "rpgd-sell-button";
+            sellButton.textContent = `Sell (${item.sellPrice || 1} Gold)`;
+            sellButton.onclick = (e) => {
+              e.stopPropagation();
+              rpgdUnequipAndSell(slot);
+            };
+            
+            itemElement.appendChild(itemName);
+            itemElement.appendChild(sellButton);
+            sellList.appendChild(itemElement);
+          }
+        }
+      }
+
+      function rpgdCloseSellMenu() {
+        rpgdShowScreen("rpgd-shop-screen");
+      }
+
+    function rpgdSellItem(index) {
+        // Make sure index is valid
+        if (index < 0 || index >= rpgdPlayer.inventory.length) return;
+        
+        const item = rpgdPlayer.inventory[index];
+        if (!item) return;
+        
+        const sellPrice = item.sellPrice || 1;
+        rpgdPlayer.gold += sellPrice;
+        
+        // Handle stackable items
+        if (item.stackable && item.count > 1) {
+            item.count--;
+        } else {
+            // Remove the item completely
+            rpgdPlayer.inventory.splice(index, 1);
+        }
+        
+        rpgdLogAction(`Sold ${item.name} for ${sellPrice} gold.`);
+        
+        // Update all displays
+        rpgdUpdateStats();
+        rpgdUpdateInventoryDisplay();
+        
+        // Only refresh sell menu if it's currently open
+        if (document.getElementById("rpgd-sell-screen").classList.contains("active")) {
+            rpgdOpenSellMenu();
+        }
+    }
+
+    function rpgdUnequipAndSell(slot) {
+        const item = rpgdPlayer.equipment[slot];
+        if (!item) return;
+        
+        const sellPrice = item.sellPrice || 1;
+        rpgdPlayer.gold += sellPrice;
+        rpgdPlayer.equipment[slot] = null;
+        
+        rpgdLogAction(`Sold ${item.name} for ${sellPrice} gold.`);
+        rpgdCalculateStats();
+        rpgdUpdateStats();
+        rpgdUpdateEquipmentDisplay();
+        rpgdOpenSellMenu(); // Refresh the sell menu
+    }
+
+function rpgdUseItem(item, index) {
+    // Check if item can be used in current context
+    if (item.type === rpgdItemTypes.COMBAT && !inCombat) {
+        alert("You can only use this in combat!");
+        return;
+    }
+    
+    if (item.type === rpgdItemTypes.CONSUMABLE && item.name === "Health Crystal" && inCombat) {
+        alert("Cannot use Health Crystal in combat!");
+        return;
+    }
+
+    let shouldEndCombat = false;
+    let skipEnemyTurn = false;
+
+    // Handle different item types
+    switch (item.type) {
+        case rpgdItemTypes.COMBAT:
+            // Combat items
+            switch (item.name) {
+                case "Pocket Shield":
+                    rpgdApplyBuff("def", item.def, 3);
+                    rpgdLogAction(`Used ${item.name}! DEF increased by ${item.def} for 3 turns.`);
+                    break;
+                    
+                case "Performance Enhancing Supplements":
+                    rpgdApplyBuff("atk", item.atk, 3);
+                    rpgdLogAction(`Used ${item.name}! ATK increased by ${item.atk} for 3 turns.`);
+                    break;
+                    
+                case "Smoke Bomb":
+                    rpgdLogAction("Used Smoke Bomb! Escaped from combat!");
+                    shouldEndCombat = true;
+                    skipEnemyTurn = true;
+                    enemiesRemaining--;
+                    break;
+                    
+                case "Improvised Explosives":
+                    const damage = item.atk;
+                    enemy.hp -= damage;
+                    rpgdLogAction(`Used ${item.name}! Dealt ${damage} damage!`);
+                    if (enemy.hp <= 0) {
+                        shouldEndCombat = true;
+                        skipEnemyTurn = true;
+                        rpgdHandleEnemyDefeat();
+                    }
+                    break;
+            }
+            break;
+            
+        case rpgdItemTypes.CONSUMABLE:
+            // Consumable items
+            switch (item.name) {
+                case "Health Potion":
+                    const healAmount = 20;
+                    rpgdPlayer.hp = Math.min(rpgdPlayer.maxHp, rpgdPlayer.hp + healAmount);
+                    rpgdLogAction(`Used ${item.name}! Healed ${healAmount} HP.`);
+                    break;
+                    
+                // Health Crystal usage
+                case "Health Crystal":
+                  rpgdPlayer.healthCrystalCount++;
+                  const oldMaxHp = rpgdPlayer.maxHp;
+                  rpgdPlayer.maxHp += 10;
+                  rpgdPlayer.hp = rpgdPlayer.maxHp; // Full heal
+                  rpgdLogAction(`Used ${item.name}! Permanently increased max HP by 10 and fully healed!`);
+                  break;
+                    
+                case "Revival Jelly":
+                    rpgdPlayer.lives++;
+                    rpgdLogAction(`Used ${item.name}! Gained 1 extra life.`);
+                    break;
+                    
+                case "Full Restore":
+                    rpgdPlayer.hp = rpgdPlayer.maxHp;
+                    rpgdLogAction(`Used ${item.name}! Fully restored HP!`);
+                    break;
+            }
+            break;
+            
+        default:
+            alert("This item cannot be used directly!");
+            return;
+    }
+
+    // Handle stackable items
+    if (item.stackable) {
+        const inventoryIndex = rpgdPlayer.inventory.findIndex(i => i.id === item.id);
+        if (inventoryIndex !== -1) {
+            if (rpgdPlayer.inventory[inventoryIndex].count > 1) {
+                rpgdPlayer.inventory[inventoryIndex].count--;
+            } else {
+                rpgdPlayer.inventory.splice(inventoryIndex, 1);
+            }
+        }
+    } else {
+        rpgdPlayer.inventory.splice(index, 1);
+    }
+  
+    // Update displays
+    rpgdUpdateInventoryDisplay();
+    rpgdUpdateStats();
+    
+    // Handle combat flow
+    if (shouldEndCombat) {
+        rpgdDisableButtons();
+        document.getElementById("rpgd-continue-button").classList.remove("rpgd-hidden");
+    } else if (inCombat && !skipEnemyTurn) {
+        rpgdDisableButtons();
+        enemyTurnInProgress = true;
+        setTimeout(() => {
+            rpgdEnemyAttack();
+            enemyTurnInProgress = false;
+            if (enemy.hp > 0) {
+                rpgdEnableButtons();
+            }
+        }, 500);
+    }
+}
+
+      // Initialize shop buttons
+      document.addEventListener("DOMContentLoaded", () => {
+        for (let itemId in rpgdShopItems) {
+          rpgdUpdateButtonText(itemId);
+          const button = document.getElementById(`rpgd-${itemId}`);
+          if (button) {
+            button.addEventListener("click", () => rpgdUpgradeItem(itemId));
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
