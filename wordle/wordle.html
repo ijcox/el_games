@@ -1,0 +1,566 @@
+<div class="wl-game-wrapper">
+  <div id="wl-noise"></div>
+  <div id="wl-toast-container"></div>
+
+  <div id="wl-app">
+    <header id="wl-header">
+      <h1 id="wl-title">W<span>O</span>RDLE</h1>
+      <div id="wl-streak">
+        <strong id="wl-streak-num">0</strong>
+        streak
+      </div>
+    </header>
+
+    <div id="wl-grid"></div>
+
+    <div id="wl-result-panel">
+      <div id="wl-result-msg"></div>
+      <div id="wl-result-word"></div>
+      <div id="wl-result-definition" class="wl-definition"></div>
+      
+      <div class="wl-stat-row">
+        <div class="wl-stat"><div class="wl-stat-num" id="wl-stat-played">0</div><div class="wl-stat-label">Played</div></div>
+        <div class="wl-stat"><div class="wl-stat-num" id="wl-stat-wins">0</div><div class="wl-stat-label">Won</div></div>
+        <div class="wl-stat"><div class="wl-stat-num" id="wl-stat-streak">0</div><div class="wl-stat-label">Streak</div></div>
+      </div>
+      <div id="wl-divider"></div>
+      <button id="wl-play-again">New Game</button>
+    </div>
+
+    <div id="wl-keyboard"></div>
+  </div>
+
+  <style>
+    .wl-game-wrapper {
+      --wl-bg: #0f0f0f;
+      --wl-surface: #1a1a1a;
+      --wl-border: #2e2e2e;
+      --wl-text: #f0ede6;
+      --wl-muted: #6b6866;
+      --wl-accent: #c9a84c;
+      --wl-correct: #4a7c59;
+      --wl-present: #b07d2e;
+      --wl-absent: #2e2e2e;
+      --wl-correct-light: #6aad7c;
+      --wl-present-light: #e0a03a;
+      --wl-key-bg: #333230;
+      --wl-key-text: #f0ede6;
+      --wl-tile-empty: transparent;
+      --wl-tile-border: #3e3c3a;
+      --wl-tile-filled: #1f1e1c;
+      background: var(--wl-bg);
+      color: var(--wl-text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      position: relative;
+      overflow-x: hidden;
+      padding: 20px 0;
+    }
+    #wl-noise {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+    #wl-app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 520px;
+      padding: 0 16px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #wl-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0 16px;
+      border-bottom: 0.5px solid var(--wl-border);
+      margin-bottom: 28px;
+      position: relative;
+    }
+    #wl-title {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900;
+      font-size: 2.2rem;
+      letter-spacing: 0.18em;
+      color: var(--wl-text);
+      text-transform: uppercase;
+      margin: 0;
+    }
+    #wl-title span { color: var(--wl-accent); }
+    #wl-streak {
+      position: absolute;
+      right: 0;
+      font-size: 11px;
+      color: var(--wl-muted);
+      text-align: right;
+      line-height: 1.5;
+    }
+    #wl-streak strong {
+      display: block;
+      color: var(--wl-accent);
+      font-size: 18px;
+      font-weight: Dodd;
+      font-weight: 500;
+    }
+    #wl-toast-container {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      pointer-events: none;
+      width: 100%;
+    }
+    .wl-toast {
+      background: var(--wl-text);
+      color: var(--wl-bg);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      padding: 10px 20px;
+      border-radius: 4px;
+      animation: wl-toast-in 0.2s ease, wl-toast-out 0.3s ease 1.5s forwards;
+      white-space: nowrap;
+    }
+    @keyframes wl-toast-in { from { opacity: 0; opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes wl-toast-out { from { opacity: 1; } to { opacity: 0; } }
+    #wl-grid {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      gap: 7px;
+      margin-bottom: 28px;
+    }
+    .wl-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 7px;
+    }
+    .wl-tile {
+      width: 62px;
+      height: 62px;
+      border: 1.5px solid var(--wl-tile-border);
+      background: var(--wl-tile-empty);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 1.8rem;
+      color: var(--wl-text);
+      text-transform: uppercase;
+      position: relative;
+      transition: border-color 0.1s;
+      user-select: none;
+    }
+    .wl-tile.wl-filled {
+      border-color: var(--wl-muted);
+      background: var(--wl-tile-filled);
+      animation: wl-pop 0.1s ease;
+    }
+    @keyframes wl-pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+    .wl-tile.wl-correct { background: var(--wl-correct); border-color: var(--wl-correct); color: #fff; }
+    .wl-tile.wl-present { background: var(--wl-present); border-color: var(--wl-present); color: #fff; }
+    .wl-tile.wl-absent { background: var(--wl-absent); border-color: var(--wl-absent); color: var(--wl-muted); }
+    .wl-tile.wl-flip { animation: wl-flip 0.5s ease forwards; }
+    @keyframes wl-flip { 0% { transform: rotateX(0deg); } 45% { transform: rotateX(-90deg); } 55% { transform: rotateX(-90deg); } 100% { transform: rotateX(0deg); } }
+    .wl-tile.wl-shake { animation: wl-shake 0.4s ease; }
+    @keyframes wl-shake { 0%, 100% { transform: translateX(0); } 15% { transform: translateX(-6px); } 30% { transform: translateX(6px); } 45% { transform: translateX(-5px); } 60% { transform: translateX(5px); } 75% { transform: translateX(-3px); } 90% { transform: translateX(3px); } }
+    .wl-tile.wl-bounce { animation: wl-bounce 0.6s ease; }
+    @keyframes wl-bounce { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-18px); } 60% { transform: translateY(-8px); } }
+    #wl-keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .wl-kb-row { display: flex; justify-content: center; gap: 5px; }
+    .wl-key {
+      height: 54px;
+      min-width: 40px;
+      padding: 0 8px;
+      background: var(--wl-key-bg);
+      color: var(--wl-key-text);
+      border: none;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      flex: 1;
+      max-width: 42px;
+      transition: background 0.2s, color 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    .wl-key.wl-wide { max-width: 64px; font-size: 11px; }
+    .wl-key:active { transform: scale(0.94); }
+    .wl-key.wl-correct { background: var(--wl-correct); color: #fff; }
+    .wl-key.wl-present { background: var(--wl-present); color: #fff; }
+    .wl-key.wl-absent { background: #222; color: var(--wl-muted); }
+    #wl-result-panel {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    #wl-result-panel.wl-visible { display: flex; }
+    #wl-result-word {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900;
+      font-size: 2.2rem;
+      letter-spacing: 0.2em;
+      color: var(--wl-accent);
+      text-transform: uppercase;
+    }
+    #wl-result-msg {
+      font-size: 12px;
+      color: var(--wl-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .wl-definition {
+      font-size: 13px;
+      color: var(--wl-muted);
+      font-style: italic;
+      max-width: 320px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    #wl-play-again {
+      background: var(--wl-accent);
+      color: #0f0f0f;
+      border: none;
+      padding: 12px 32px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 4px;
+    }
+    #wl-play-again:hover { opacity: 0.88; }
+    #wl-play-again:active { transform: scale(0.97); }
+    #wl-divider {
+      width: 40px;
+      height: 1px;
+      background: var(--wl-border);
+      margin: 4px 0;
+    }
+    .wl-stat-row { display: flex; gap: 20px; }
+    .wl-stat { text-align: center; }
+    .wl-stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--wl-text);
+    }
+    .wl-stat-label {
+      font-size: 10px;
+      color: var(--wl-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  </style>
+</div>
+
+<script>
+(function() {
+  const WL_WORDS = ["about","abuse","actor","acute","admit","adopt","adult","after","again","agent","agree","ahead","alarm","album","alert","alien","align","alive","alley","allow","alone","along","aloud","alpha","alter","angel","anger","angle","angry","anime","ankle","annex","antic","apart","apple","apply","apron","aptly","argue","arise","armor","army","aroma","arose","array","aside","askew","asset","atlas","atone","attic","audio","augur","aunty","avail","avoid","awake","aware","awful","awoke","axiom","azure","badge","badly","baker","bases","basic","basis","batch","beach","beard","beast","began","begin","being","below","bench","bible","bikes","birth","black","blade","blame","bland","blank","blast","blaze","bleed","bless","blind","block","blood","bloom","blown","blues","blunt","blurt","board","bonus","booze","bored","botch","bound","boxer","brace","braid","brake","brand","brave","bread","break","breed","brick","bride","brief","bring","brink","broil","broke","brook","broom","broth","brown","brunt","brush","build","built","burst","byway","cabal","cabin","cable","cache","cadet","camel","candy","canny","caper","cargo","carry","catch","cause","cease","chair","chalk","charm","chase","cheap","cheat","check","cheek","chess","chest","child","china","choir","chore","chose","civic","civil","clamp","clang","clank","clash","clasp","class","clean","clear","clerk","click","cliff","climb","cling","clock","clone","close","cloth","cloud","clown","comet","comic","comma","coral","couch","cough","could","count","court","cover","crack","craft","cramp","crane","crash","craze","creek","crisp","cross","croup","crowd","crown","cruel","crumb","crush","curse","curve","cycle","daily","dairy","dance","daunt","decay","defer","delay","dense","depot","depth","derby","devil","diary","dirty","disco","doubt","dough","draft","drain","drama","drape","drawl","dread","dream","droop","drove","drown","dunce","eagle","early","earth","edged","eight","elite","ember","empty","enact","enemy","epoch","equal","erase","error","essay","evade","event","every","exact","exert","exile","exist","extra","faint","faith","false","fancy","fatal","fault","feast","fence","ferry","fever","fiend","fiery","fifth","filth","final","first","fixed","fjord","flame","flask","flesh","float","flock","flood","floss","flour","flout","fluid","flunk","focus","folly","force","forge","forth","found","frame","frank","fraud","fresh","front","frost","froze","fruit","fully","funny","giant","given","glare","glaze","glean","gleam","glide","gloom","glory","gloss","glove","glowing","glue","gnome","gouge","grace","grade","grain","grand","grant","grasp","grass","grave","great","greed","green","grief","grime","grind","groan","grope","gross","grout","grove","growl","gruel","gruff","guile","guise","gulch","habit","happy","harsh","haven","hazel","haste","heart","heavy","hefty","hence","herbs","hinge","hippo","hoary","hobby","holly","honor","horde","hotel","hound","house","human","humid","humor","hurry","hyper","ideal","image","imply","inbox","incur","infer","inlay","inner","input","inter","inure","irony","issue","ivory","jaunt","jazzy","jewel","jiffy","joust","judge","juice","juicy","jumpy","knack","knave","kneel","knelt","knife","knock","knoll","known","label","labor","lance","lanky","large","latch","later","laugh","layer","lemon","level","light","limit","liner","lingo","liver","livid","llama","local","lodge","lofty","logic","login","loose","lover","lower","loyal","lucid","lucky","lunar","lunch","lusty","lyric","magic","major","maker","manor","maple","marsh","match","merge","merit","might","minor","mirth","miser","model","money","month","moral","mould","moult","mound","mount","mourn","mouth","muddy","nasty","naval","nerve","never","night","noble","noise","north","noted","novel","nymph","occur","ocean","offer","olive","onset","optic","orbit","order","other","ought","outer","outdo","outgo","overt","owing","owner","oxide","ozone","paint","paler","panic","paper","patch","patio","peace","penal","penny","pesky","phase","phone","photo","pilot","pinch","pixel","pizza","place","plain","plane","plant","plate","plaza","pluck","plumb","plume","plump","plunk","plush","poise","poker","polar","polka","polyp","pouch","power","press","price","pride","prime","prism","prize","probe","prone","proud","prove","prowl","prude","psalm","pulse","pupil","puppy","purse","pushy","query","queen","queue","quick","quiet","quota","quote","rabid","radix","rainy","raise","ranch","range","rapid","reach","ready","realm","rebel","rebus","recap","recut","reign","relay","renew","repay","repel","reset","retro","revel","rider","rifle","right","rigor","risky","rival","rivet","robin","rocky","rouge","rough","round","rowdy","royal","rugby","ruler","ruled","rumor","rusty","sadly","sally","salve","sandy","satin","sauce","savor","savvy","scary","scene","scone","score","scour","scowl","scrub","scuff","seedy","senile","serve","setup","seven","shade","shake","shall","shame","shape","share","shark","sharp","sheen","sheep","shelf","shell","shift","shine","shirt","shock","shore","short","shout","shove","shred","shrug","sight","sigma","silly","since","sixth","sizeable","skate","skill","skimp","skirt","slab","slack","slain","slang","slash","sleet","slick","slim","slime","sling","slink","sloth","slump","slunk","slurp","smart","smear","smell","smirk","snack","snail","snare","sneak","sneer","snout","snowy","sober","solar","solve","sorry","south","space","spade","spare","spark","speak","spend","spied","spike","spill","spine","spite","splat","spoke","spoof","sport","spout","spray","spree","sprig","spunk","squad","squat","squid","staid","stain","stair","stale","stall","stamp","stank","stare","stark","start","stash","state","stead","steal","steam","steel","steep","steer","stern","stiff","still","sting","stink","stint","stomp","store","stout","stove","strap","stray","strip","strut","stuck","stung","stunk","stunt","style","sugar","suite","sultry","super","surge","swamp","swear","sweat","swipe","swirl","sword","sworn","syrup","tabby","taffy","taint","taken","tally","talon","taunt","tawny","tense","tepid","timid","tithe","title","today","token","total","touch","tough","toxic","trace","track","trade","trail","train","tramp","trawl","tread","treat","trend","trial","tribe","tried","tripe","trite","tromp","troth","trout","trove","truce","truly","trump","trunk","tryst","tumor","tuner","tunic","ultra","unfit","until","unkind","untie","upset","urban","usher","usurp","utter","vague","valor","value","valve","vapor","vault","vaunt","verse","vigor","viral","virus","visor","visit","vista","vital","vivid","vocal","voila","vomit","voter","vouch","wager","waist","waltz","waste","watch","weird","whale","while","whole","whose","valid","wired","witch","witty","woman","women","world","worry","worse","worst","would","wound","wrath","wrist","yacht","yearn","yield","young","youth","zonal"];
+const WL_DEFINITIONS = {
+  about:"concerning a topic",acute:"sharp or severe",admit:"to confess or allow entry",adult:"a fully grown person",after:"following in time",again:"one more time",agent:"a person who acts for another",agree:"to have the same opinion",ahead:"further forward",alarm:"a warning signal",album:"a collection of recordings",alert:"watchful and ready",alive:"living; not dead",allow:"to permit something",alone:"without others",along:"moving forward",alpha:"first in order",alter:"to change something",angel:"a divine messenger",anger:"a strong feeling of displeasure",angle:"the space between two lines",angry:"feeling strong displeasure",ankle:"the joint connecting foot and leg",arise:"to emerge or come up",armor:"protective covering",aroma:"a pleasant smell",array:"an ordered arrangement",aside:"to one side",asset:"something valuable",atlas:"a book of maps",atone:"to make amends",audio:"relating to sound",avoid:"to keep away from",awake:"not asleep",aware:"having knowledge of something",awful:"very bad",azure:"a bright blue color",badge:"an emblem or token",baker:"one who bakes bread",basic:"forming an essential foundation",batch:"a quantity produced at once",beach:"land beside the sea",beard:"facial hair on the chin",beast:"a wild animal",black:"the darkest color",blade:"the flat part of a knife",blame:"to assign fault to",bland:"lacking strong flavor",blank:"not written on; empty",blast:"a strong explosion",blaze:"a very large fire",blood:"the red fluid in veins",bloom:"to produce flowers",blown:"moved by wind",blues:"a feeling of sadness",blunt:"having a dull edge",board:"a flat piece of wood",bonus:"something extra",bored:"feeling weary from lack of interest",bound:"destined or tied",boxer:"one who fights with fists",brace:"a support structure",brake:"a device for slowing",brand:"a type of product",brave:"showing courage",bread:"baked dough food",break:"to separate into pieces",breed:"a type of animal",bride:"a woman being married",bring:"to carry to a place",broke:"having no money",brook:"a small stream",broom:"a sweeping tool",brown:"a dark earthy color",brush:"a tool with bristles",built:"constructed; past tense of build",burst:"to break open suddenly",cabin:"a small wooden house",cable:"a thick wire",candy:"a sweet confection",caper:"a playful adventure",cargo:"goods carried by ship",carry:"to transport something",catch:"to grab something moving",cause:"the reason something happens",cease:"to stop",chair:"a seat with a back",charm:"a quality that delights others",chase:"to pursue something",cheap:"costing little money",cheat:"to act dishonestly",check:"to examine or verify",chess:"a strategic board game",chest:"the front of the torso",child:"a young person",choir:"a group of singers",chore:"a routine task",chose:"past tense of choose",civic:"relating to a city or citizens",civil:"relating to ordinary citizens",clash:"a violent conflict",class:"a group or category",clean:"free from dirt",clear:"easy to see through",clerk:"an office worker",click:"a short sharp sound",cliff:"a steep rock face",climb:"to go up",cling:"to hold tightly",clock:"a device that shows time",clone:"an exact copy",close:"near; to shut",cloud:"a mass of water vapor in sky",clown:"a comic performer",comet:"an icy body orbiting the sun",comic:"relating to comedy",comma:"a punctuation mark",coral:"a pink-orange sea creature",couch:"a long soft seat",cough:"to expel air from lungs noisily",count:"to enumerate numbers",court:"a legal tribunal",cover:"to place something over",crack:"a narrow opening or break",craft:"skill; to make by hand",crane:"a large lifting machine",crash:"a violent collision",creek:"a small stream",crisp:"firm and fresh",cross:"angry; to traverse",crowd:"a large group of people",crown:"a royal headpiece",cruel:"causing pain deliberately",crumb:"a small fragment of food",crush:"to press with force",curse:"a magical wish of harm",curve:"a smoothly bending line",cycle:"a series of recurring events",daily:"happening every day",dairy:"relating to milk products",dance:"to move rhythmically to music",decay:"to rot or decompose",delay:"to put off to a later time",dense:"closely packed together",depth:"the distance downward",devil:"an evil supernatural being",dirty:"covered with dirt",doubt:"to feel uncertain about",draft:"a preliminary version",drama:"an exciting event or play",dread:"great fear or apprehension",dream:"images experienced while sleeping",drown:"to die in water",eagle:"a large bird of prey",earth:"the planet we live on",eight:"the number 8",elite:"a select group at the top",empty:"containing nothing",enemy:"a hostile person or force",equal:"the same in value",error:"a mistake",essay:"a short piece of writing",evade:"to escape or avoid",event:"an occurrence",every:"each without exception",exact:"precise and accurate",exert:"to apply force or effort",exile:"forced removal from one's country",exist:"to have reality",extra:"more than what is normal",faith:"strong belief without proof",false:"not true",fancy:"elaborate; to desire",fatal:"causing death",feast:"a large celebratory meal",fence:"a barrier of wood or wire",fever:"high body temperature",fiery:"very hot; passionate",final:"last; concluding",first:"before all others",fixed:"repaired; not moving",flame:"the glowing gas of a fire",flesh:"to the soft tissue of a body",float:"to rest on a liquid surface",flood:"overflow of water onto land",focus:"to concentrate attention",force:"physical power or strength",forge:"to shape metal; to fake",forth:"forward in time or place",found:"discovered; established",frame:"a border or structure",frank:"honest and direct",fraud:"criminal deception",fresh:"recently made; not stale",front:"the forward-facing part",frost:"frozen water crystals",fruit:"the edible product of a plant",funny:"causing laughter",giant:"an extremely large thing",given:"presented; considering",glare:"a fierce or dazzling light",grace:"elegance; divine favor",grade:"a level or quality",grain:"a seed of a cereal plant",grand:"impressive and large",grant:"to give or allow",grasp:"to seize firmly",grass:"ground-covering green plants",grave:"serious; a burial site",great:"very large or important",greed:"excessive desire for wealth",green:"the color of leaves",grief:"deep sorrow",grime:"ingrained dirt",grind:"to crush into powder",groan:"a deep sound of pain",gross:"disgusting; twelve dozen",group:"a number of things together",growl:"a low threatening sound",habit:"a regular practice",happy:"feeling pleasure and contentment",harsh:"cruel; unpleasantly rough",heart:"the organ that pumps blood",heavy:"having great weight",herbs:"plants used in cooking",hinge:"a joint that allows swinging",honor:"high respect and esteem",hotel:"an establishment for travelers",hound:"a type of hunting dog",house:"a building for living in",human:"relating to people",humor:"the quality of being funny",hurry:"to move or act quickly",ideal:"most suitable; a standard",image:"a picture or representation",imply:"to suggest without stating",inner:"located inside",input:"data entered into a system",irony:"a meaning opposite to literal words",issue:"an important topic; to distribute",judge:"to form an opinion; a legal official",juice:"liquid from fruit",jumpy:"nervous and easily startled",label:"a tag with information",labor:"hard work",lance:"a long pointed weapon",large:"of great size",laugh:"to make sounds of amusement",layer:"a thickness of material",lemon:"a sour yellow citrus fruit",level:"flat; a layer",light:"illumination; not heavy",limit:"a boundary or restriction",logic:"a system of reasoning",loose:"not firmly attached",loyal:"faithful and devoted",lucky:"having good fortune",lunch:"a midday meal",lyric:"words of a song",magic:"mysterious power",major:"of great importance",maker:"one who creates",maple:"a tree known for sweet sap",marsh:"a low waterlogged area",match:"to correspond; a contest",money:"a medium of exchange",month:"a period of 28-31 days",moral:"relating to right and wrong",mouth:"the opening used for eating",nerve:"a fiber carrying signals; courage",never:"at no time",night:"the period of darkness",noble:"having fine moral qualities",noise:"unwanted sound",north:"the direction toward the pole",novel:"new and original; a book",occur:"to happen",ocean:"a vast body of salt water",olive:"a small edible fruit",orbit:"the curved path around a body",order:"arrangement; a command",other:"different from the one mentioned",outer:"on the outside",owner:"one who possesses something",oxide:"a compound with oxygen",ozone:"a form of oxygen in the atmosphere",paint:"to apply color; a colored liquid",panic:"sudden overwhelming fear",paper:"thin material for writing",patch:"a piece used for repair",peace:"freedom from conflict",phone:"a telephone device",photo:"a photograph",pilot:"one who flies an aircraft",pinch:"to grip between fingers",pixel:"a tiny element of a digital image",pizza:"an Italian baked flatbread dish",place:"a specific location",plain:"simple; a flat area of land",plane:"a flat surface; an aircraft",plant:"a living organism; to put in ground",plate:"a flat dish; a thin flat layer",pluck:"to pull sharply; courage",plush:"luxuriously soft",poise:"graceful composure",polar:"relating to the poles",power:"the ability to do work",press:"to push; media organizations",price:"the amount paid for something",pride:"satisfaction in one's achievements",prime:"of first importance",prism:"a transparent shape splitting light",prize:"a reward for winning",probe:"an investigation; to explore",prone:"likely to do something",proud:"feeling deep satisfaction",prove:"to demonstrate truth",pulse:"rhythmic beating of heart",puppy:"a young dog",purse:"a small bag for money",query:"a question; to ask",queen:"a female ruler",queue:"a line of waiting people",quick:"moving fast",quiet:"making little noise",quote:"to repeat someone's words",raise:"to lift up; to bring up",ranch:"a large farm",range:"a variety; a distance",rapid:"happening quickly",reach:"to extend toward",ready:"prepared for action",realm:"a kingdom; a field of activity",rebel:"to resist authority",reign:"the period a ruler is in power",relay:"to pass on information",reset:"to return to initial state",rider:"one who rides",right:"correct; the opposite of left",risky:"involving danger",rival:"a competitor",rocky:"full of rocks; unstable",rough:"having an uneven surface",round:"circular in shape",royal:"relating to a king or queen",ruler:"one who rules; a measuring tool",sadly:"in a sad manner",sauce:"a liquid condiment",savvy:"practical knowledge",scene:"a place where something occurs",score:"points earned in a game",sense:"any of the five senses; to detect",serve:"to provide a service",seven:"the number 7",shade:"partial darkness; a type of color",shake:"to move rapidly back and forth",shall:"used to express future intent",shame:"a feeling of guilt or disgrace",shape:"the form of something",share:"to give a portion to others",shark:"a large predatory fish",sharp:"having a fine cutting edge",sheep:"a woolly farm animal",shelf:"a flat horizontal board",shift:"to move; a work period",shine:"to emit light",shirt:"a garment for the upper body",shock:"a sudden disturbing experience",shore:"land along water",short:"not tall; not long",shout:"to speak very loudly",shred:"to tear into strips",sight:"the ability to see; a view",silly:"showing a lack of seriousness",since:"from a time in the past",sixth:"the ordinal number six",skill:"the ability to do something well",slash:"a cutting blow",slate:"a gray rock used for roofing",sleep:"the natural rest of the body",smile:"a facial expression of happiness",smoke:"gas produced by burning",snake:"a legless reptile",solar:"relating to the sun",solve:"to find a solution",sorry:"feeling regret or sympathy",south:"the direction away from the north",space:"the infinite expanse beyond Earth",spare:"extra; to save from harm",spark:"a small fiery particle",speak:"to say words",spend:"to use money or time",spine:"the backbone; the back of a book",sport:"physical competitive activity",spray:"to scatter liquid in droplets",squad:"a small military or police unit",stain:"a mark that is hard to remove",stair:"one step in a staircase",stale:"no longer fresh",stamp:"a mark made by pressing; to press",stare:"to look fixedly at something",stark:"bare and harsh",start:"to begin",state:"a condition; a political territory",steal:"to take without permission",steam:"water vapor",steel:"a hard metal alloy",stiff:"not easily bent",still:"not moving; continuing",sting:"to pierce or cause a sharp pain",stock:"a supply kept for use",stone:"a piece of rock",store:"a place to buy things; to keep",stout:"strongly built; brave",stove:"a device for cooking",strap:"a narrow strip of material",stray:"to wander away",strip:"to remove; a narrow piece",stuck:"unable to move",stunt:"a dangerous feat; to hinder growth",style:"a manner of doing something",sugar:"a sweet crystalline substance",suite:"a set of rooms; a set of software",super:"greater than normal",surge:"a sudden powerful forward movement",sweet:"having a pleasant taste",sword:"a bladed weapon",table:"a flat surface on legs",taste:"the sense that detects flavor",tense:"stretched tight; a verb form",title:"a name identifying a work",today:"on this day",total:"the complete amount",touch:"to make contact with",tough:"strong; difficult",trace:"a mark left by something",track:"a path; to follow",trade:"exchange of goods",trail:"a path through nature",train:"a series of connected vehicles",trawl:"to search thoroughly",treat:"to deal with; a special pleasure",trend:"a general direction of change",trial:"a test; a legal proceeding",tried:"attempted; tested",truce:"an agreement to stop fighting",trunk:"to the main stem; a large box; car storage",tumor:"an abnormal growth of cells",ultra:"beyond; extreme",upset:"to disturb; unhappy",urban:"relating to a city",usher:"to guide; an attendant",utter:"complete; to speak",vague:"not clear or definite",valor:"great courage",value:"the worth of something",vapor:"a substance in gas form",vault:"an arched roof; to jump over",verse:"a line of poetry; a stanza",vigor:"physical strength and energy",viral:"spreading widely and quickly",virus:"an infectious microorganism",visit:"to go to see someone",vital:"essential for life",vivid:"producing strong mental images",vocal:"relating to the voice",voter:"one who votes in an election",wager:"a bet",waist:"the middle part of the body",waste:"to use carelessly; unwanted material",watch:"to observe; a timepiece",weird:"a very strange",whale:"a very large marine mammal",while:"during the time that",whole:"complete; all of something",world:"the Earth and all its people",worry:"to feel anxious",worse:"of lower quality than before",worst:"of the lowest quality",would:"used to express conditional action",wound:"an injury; past tense of wind",wrath:"extreme anger",wrist:"the joint connecting hand and arm",yacht:"a sailing or motorized vessel",yearn:"to have a strong desire",yield:"to produce; to give way",young:"in early life; not old",youth:"the time of being young"
+};
+
+  let wlState = {
+    word: '',
+    guesses: [],
+    currentRow: 0,
+    currentCol: 0,
+    currentGuess: [],
+    gameOver: false,
+    stats: { played: 0, wins: 0, streak: 0 }
+  };
+
+  function wlPickWord() {
+    return WL_WORDS[Math.floor(Math.random() * WL_WORDS.length)].toUpperCase();
+  }
+
+  function wlBuildGrid() {
+    const grid = document.getElementById('wl-grid');
+    grid.innerHTML = '';
+    for (let r = 0; r < 6; r++) {
+      const row = document.createElement('div');
+      row.className = 'wl-row';
+      row.id = `wl-row-${r}`;
+      for (let c = 0; c < 5; c++) {
+        const tile = document.createElement('div');
+        tile.className = 'wl-tile';
+        tile.id = `wl-tile-${r}-${c}`;
+        row.appendChild(tile);
+      }
+      grid.appendChild(row);
+    }
+  }
+
+  function wlBuildKeyboard() {
+    const rows = [
+      ['Q','W','E','R','T','Y','U','I','O','P'],
+      ['A','S','D','F','G','H','J','K','L'],
+      ['ENTER','Z','X','C','V','B','N','M','⌫']
+    ];
+    const kb = document.getElementById('wl-keyboard');
+    kb.innerHTML = '';
+    rows.forEach(row => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'wl-kb-row';
+      row.forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'wl-key' + (key.length > 1 && key !== '⌫' ? ' wl-wide' : '');
+        btn.textContent = key;
+        btn.id = `wl-key-${key}`;
+        btn.setAttribute('data-key', key);
+        btn.addEventListener('click', () => wlHandleKey(key));
+        rowEl.appendChild(btn);
+      });
+      kb.appendChild(rowEl);
+    });
+  }
+
+  function wlHandleKey(key) {
+    if (wlState.gameOver) return;
+    if (key === '⌫' || key === 'BACKSPACE') {
+      wlDeleteLetter();
+    } else if (key === 'ENTER') {
+      wlSubmitGuess();
+    } else if (/^[A-Z]$/.test(key)) {
+      wlAddLetter(key);
+    }
+  }
+
+  function wlAddLetter(letter) {
+    if (wlState.currentCol >= 5) return;
+    const tile = document.getElementById(`wl-tile-${wlState.currentRow}-${wlState.currentCol}`);
+    tile.textContent = letter;
+    tile.classList.add('wl-filled');
+    wlState.currentGuess.push(letter);
+    wlState.currentCol++;
+  }
+
+  function wlDeleteLetter() {
+    if (wlState.currentCol <= 0) return;
+    wlState.currentCol--;
+    wlState.currentGuess.pop();
+    const tile = document.getElementById(`wl-tile-${wlState.currentRow}-${wlState.currentCol}`);
+    tile.textContent = '';
+    tile.classList.remove('wl-filled');
+    
+  }
+
+  const WL_VALID = new Set(WL_WORDS);
+
+  function wlSubmitGuess() {
+    if (wlState.currentCol < 5) {
+      wlToast('Not enough letters');
+      wlShakeRow(wlState.currentRow);
+      return;
+    }
+    const guess = wlState.currentGuess.join('');
+    if (!WL_VALID.has(guess.toLowerCase())) {
+      wlToast('Not in word list');
+      wlShakeRow(wlState.currentRow);
+      return;
+    }
+    const result = wlScoreGuess(guess, wlState.word);
+    wlState.guesses.push({ guess, result });
+    wlRevealRow(wlState.currentRow, guess, result, () => {
+      wlUpdateKeyboard(guess, result);
+      const won = result.every(r => r === 'correct');
+      if (won) {
+        wlState.gameOver = true;
+        wlState.stats.played++;
+        wlState.stats.wins++;
+        wlState.stats.streak++;
+        document.getElementById('wl-streak-num').textContent = wlState.stats.streak;
+        setTimeout(() => {
+          const msgs = ['Genius!','Magnificent!','Impressive!','Splendid!','Great!','Phew!'];
+          wlToast(msgs[wlState.currentRow] || 'Correct!');
+          setTimeout(wlShowResult, 1200);
+        }, 300);
+      } else {
+        wlState.currentRow++;
+        wlState.currentGuess = [];
+        wlState.currentCol = 0;
+        if (wlState.currentRow >= 6) {
+          wlState.gameOver = true;
+          wlState.stats.played++;
+          wlState.stats.streak = 0;
+          document.getElementById('wl-streak-num').textContent = wlState.stats.streak;
+          setTimeout(() => {
+            wlToast(wlState.word, 3000);
+            setTimeout(wlShowResult, 1400);
+          }, 300);
+        }
+      }
+    });
+  }
+
+  function wlScoreGuess(guess, word) {
+    const result = Array(5).fill('absent');
+    const wordArr = word.split('');
+    const guessArr = guess.split('');
+    const used = Array(5).fill(false);
+
+    for (let i = 0; i < 5; i++) {
+      if (guessArr[i] === wordArr[i]) {
+        result[i] = 'correct';
+        used[i] = true;
+      }
+    }
+    for (let i = 0; i < 5; i++) {
+      if (result[i] === 'correct') continue;
+      for (let j = 0; j < 5; j++) {
+        if (!used[j] && guessArr[i] === wordArr[j]) {
+          result[i] = 'present';
+          used[j] = true;
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  function wlRevealRow(row, guess, result, cb) {
+    const delay = 300;
+    result.forEach((res, i) => {
+      setTimeout(() => {
+        const tile = document.getElementById(`wl-tile-${row}-${i}`);
+        tile.classList.add('wl-flip');
+        setTimeout(() => {
+          tile.classList.remove('wl-filled');
+          tile.classList.add(`wl-${res}`);
+        }, delay / 2);
+        if (i === 4) setTimeout(cb, delay);
+      }, i * delay);
+    });
+  }
+
+  function wlUpdateKeyboard(guess, result) {
+    const priority = { correct: 3, present: 2, absent: 1 };
+    const current = {};
+    for (let i = 0; i < 5; i++) {
+      const l = guess[i];
+      const r = result[i];
+      if (!current[l] || priority[r] > priority[current[l]]) current[l] = r;
+    }
+    Object.entries(current).forEach(([letter, res]) => {
+      const key = document.getElementById(`wl-key-${letter}`);
+      if (!key) return;
+      const cp = priority[res];
+      const existingClass = ['wl-correct','wl-present','wl-absent'].find(c => key.classList.contains(c));
+      if (existingClass) {
+        const ep = priority[existingClass.replace('wl-', '')];
+        if (cp <= ep) return;
+        key.classList.remove(existingClass);
+      }
+      key.classList.add(`wl-${res}`);
+    });
+  }
+
+  function wlShakeRow(row) {
+    const rowEl = document.getElementById(`wl-row-${row}`);
+    rowEl.querySelectorAll('.wl-tile').forEach(t => {
+      t.classList.remove('wl-shake');
+      void t.offsetWidth;
+      t.classList.add('wl-shake');
+      t.addEventListener('animationend', () => t.classList.remove('wl-shake'), { once: true });
+    });
+  }
+
+  function wlBounceRow(row) {
+    const rowEl = document.getElementById(`wl-row-${row}`);
+    rowEl.querySelectorAll('.wl-tile').forEach((t, i) => {
+      setTimeout(() => {
+        t.classList.add('wl-bounce');
+        t.addEventListener('animationend', () => t.classList.remove('wl-bounce'), { once: true });
+      }, i * 80);
+    });
+  }
+
+  function wlToast(msg, dur = 1800) {
+    const container = document.getElementById('wl-toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'wl-toast';
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), dur + 300);
+  }
+
+  function wlShowResult() {
+    const won = wlState.guesses.length > 0 && wlState.guesses[wlState.guesses.length-1].result.every(r => r === 'correct');
+    const panel = document.getElementById('wl-result-panel');
+    
+    document.getElementById('wl-result-word').textContent = wlState.word;
+    document.getElementById('wl-result-msg').textContent = won ? `solved in ${wlState.guesses.length} ${wlState.guesses.length === 1 ? 'try' : 'tries'}` : 'the word was';
+    
+    // Look up definition
+    const def = WL_DEFINITIONS[wlState.word.toLowerCase()] || "No definition available.";
+    document.getElementById('wl-result-definition').textContent = def;
+
+    document.getElementById('wl-stat-played').textContent = wlState.stats.played;
+    document.getElementById('wl-stat-wins').textContent = wlState.stats.wins;
+    document.getElementById('wl-stat-streak').textContent = wlState.stats.streak;
+    
+    panel.classList.add('wl-visible');
+    if (won) setTimeout(() => wlBounceRow(wlState.guesses.length - 1), 100);
+  }
+
+  function wlInit() {
+    wlState.word = wlPickWord();
+    wlState.guesses = [];
+    wlState.currentRow = 0;
+    wlState.currentCol = 0;
+    wlState.currentGuess = [];
+    wlState.gameOver = false;
+    wlBuildGrid();
+    wlBuildKeyboard();
+    document.getElementById('wl-result-panel').classList.remove('wl-visible');
+  }
+
+  document.getElementById('wl-play-again').addEventListener('click', wlInit);
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const key = e.key.toUpperCase();
+    if (key === 'BACKSPACE') wlHandleKey('BACKSPACE');
+    else if (key === 'ENTER') wlHandleKey('ENTER');
+    else if (/^[A-Z]$/.test(key)) wlHandleKey(key);
+  });
+
+  wlInit();
+})();
+</script>
