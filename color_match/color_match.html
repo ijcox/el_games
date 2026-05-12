@@ -1,0 +1,762 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Bebas+Neue&display=swap');
+
+:root {
+  --ink: #0a0a0f;
+  --paper: #f5f2ec;
+  --accent: #ff3d00;
+  --muted: #9a9490;
+  --border: rgba(10,10,15,0.12);
+  --card-bg: #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.g-root {
+  background: var(--paper);
+  min-height: 520px;
+  font-family: 'DM Mono', monospace;
+  color: var(--ink);
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* noise overlay */
+.g-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen { display: none; position: relative; z-index: 1; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ─── START ─── */
+#s-start {
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.start-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.start-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 12vw, 96px);
+  line-height: 0.9;
+  color: var(--ink);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.start-title span { color: var(--accent); }
+
+.start-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 300px;
+  margin: 16px auto 32px;
+  letter-spacing: 0.03em;
+}
+
+.cta-btn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.15em;
+  padding: 14px 40px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: transform 0.12s, background 0.12s;
+}
+.cta-btn:hover { background: var(--accent); transform: scale(1.02); }
+.cta-btn:active { transform: scale(0.98); }
+
+/* ─── FLASH ─── */
+#s-flash {
+  min-height: 480px;
+  align-items: stretch;
+}
+
+.flash-full {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 480px;
+}
+
+.flash-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 8px;
+}
+
+.flash-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 120px;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 4px 40px rgba(0,0,0,0.3);
+}
+
+.flash-progress-wrap {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 5px;
+  background: rgba(255,255,255,0.2);
+}
+.flash-bar {
+  height: 100%;
+  background: rgba(255,255,255,0.9);
+  transition: width 0.05s linear;
+}
+
+/* ─── GAME ─── */
+#s-game {
+  padding: 20px 20px 16px;
+  min-height: 480px;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.game-round-label {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pips {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.pip {
+  width: 20px; height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+.pip.done { background: var(--ink); }
+.pip.active { background: var(--accent); }
+
+.sliders-layout {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.sl-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sl-label {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sl-track {
+  width: 36px;
+  height: 200px;
+  border-radius: 18px;
+  position: relative;
+  cursor: pointer;
+  border: 1.5px solid rgba(0,0,0,0.08);
+  overflow: visible;
+  touch-action: none;
+}
+
+.sl-thumb {
+  width: 22px; height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 0 0 2px rgba(255,255,255,0.8);
+  pointer-events: none;
+  transition: box-shadow 0.15s;
+}
+.sl-track:active .sl-thumb {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35), 0 0 0 3px rgba(255,255,255,0.9);
+}
+
+.sl-val {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  min-width: 30px;
+  text-align: center;
+}
+
+.preview-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 22px;
+}
+
+.preview-swatch {
+  flex: 1;
+  min-height: 160px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0,0,0,0.07);
+  position: relative;
+  transition: background 0.05s;
+}
+
+.preview-tag {
+  position: absolute;
+  bottom: 8px; left: 8px;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(4px);
+  padding: 3px 7px;
+  border-radius: 2px;
+}
+
+.preview-hsl {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.submit-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 14px;
+}
+
+/* ─── RESULT ─── */
+#s-result {
+  min-height: 480px;
+  padding: 0;
+}
+
+.result-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 220px;
+}
+.result-swatch {
+  height: 100%;
+  position: relative;
+}
+.result-swatch-label {
+  position: absolute;
+  bottom: 10px; left: 10px;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  background: rgba(0,0,0,0.2);
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+
+.result-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.result-score-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.result-score-big {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.result-score-denom {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.result-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.score-bar-wrap {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ink);
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+
+.result-phrase {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+/* ─── FINAL ─── */
+#s-final {
+  min-height: 480px;
+  padding: 24px 20px;
+  align-items: flex-start;
+}
+
+.final-header {
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.final-total {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 52px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.final-note {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.final-grid-label {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.final-pairs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.final-pair-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.final-pair-swatch {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.06);
+  position: relative;
+}
+
+.final-pair-round {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 2px;
+}
+
+.final-pair-score {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: center;
+}
+
+.final-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.final-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 2px;
+}
+</style>
+
+<div class="g-root">
+
+<!-- START -->
+<div id="s-start" class="screen active">
+  <div class="start-eyebrow">Visual perception challenge</div>
+  <div class="start-title">Color<br><span>Match</span></div>
+  <div class="start-desc">A color flashes for 5 seconds. Memorize it, then recreate it with the hue, saturation and lightness sliders.</div>
+  <button class="cta-btn" id="play-btn">Begin &rarr;</button>
+</div>
+
+<!-- FLASH -->
+<div id="s-flash" class="screen">
+  <div class="flash-full" id="flash-full">
+    <div class="flash-eyebrow">Memorize this color</div>
+    <div class="flash-count" id="flash-count">500</div>
+    <div class="flash-progress-wrap">
+      <div class="flash-bar" id="flash-bar" style="width:100%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen">
+  <div class="game-header">
+    <span class="game-round-label" id="round-label">Round 1 / 5</span>
+    <div class="pips" id="pips"></div>
+  </div>
+  <div class="sliders-layout">
+    <div class="sl-wrap">
+      <div class="sl-label">Hue</div>
+      <div class="sl-track" id="sl-h"><div class="sl-thumb" id="th-h"></div></div>
+      <div class="sl-val" id="v-h">180°</div>
+    </div>
+    <div class="sl-wrap">
+      <div class="sl-label">Sat</div>
+      <div class="sl-track" id="sl-s"><div class="sl-thumb" id="th-s"></div></div>
+      <div class="sl-val" id="v-s">100%</div>
+    </div>
+    <div class="sl-wrap">
+      <div class="sl-label">Light</div>
+      <div class="sl-track" id="sl-l"><div class="sl-thumb" id="th-l"></div></div>
+      <div class="sl-val" id="v-l">50%</div>
+    </div>
+    <div class="preview-col">
+      <div class="preview-swatch" id="preview">
+        <div class="preview-tag">Your guess</div>
+      </div>
+      <div class="preview-hsl" id="preview-hsl">hsl(180, 100%, 50%)</div>
+    </div>
+  </div>
+  <div class="submit-row">
+    <button class="cta-btn" id="submit-btn">Submit</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="s-result" class="screen">
+  <div class="result-split">
+    <div class="result-swatch" id="r-orig">
+      <div class="result-swatch-label">Original</div>
+    </div>
+    <div class="result-swatch" id="r-user">
+      <div class="result-swatch-label">Your guess</div>
+    </div>
+  </div>
+  <div class="result-body">
+    <div class="result-score-row">
+      <div class="result-score-big" id="r-score">0.0</div>
+      <div class="result-score-denom">/ 10</div>
+    </div>
+    <div class="result-label" id="r-label">—</div>
+    <div class="score-bar-wrap"><div class="score-bar-fill" id="r-bar" style="width:0%"></div></div>
+    <div class="result-phrase" id="r-phrase"></div>
+    <div class="submit-row" style="padding-top:8px;">
+      <button class="cta-btn" id="next-btn">Next round &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div id="s-final" class="screen">
+  <div class="final-header" style="width:100%;">
+    <div style="font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Final score</div>
+    <div class="final-total" id="final-score">0.0 / 50</div>
+    <div class="final-note" id="final-note"></div>
+  </div>
+  <div class="final-grid-label">Round comparison — top: original · bottom: guess</div>
+  <div class="final-legend">
+    <div class="final-legend-item"><div class="legend-dot" style="border:1.5px solid #aaa;background:transparent;"></div>Original</div>
+    <div class="final-legend-item"><div class="legend-dot" style="background:var(--ink);"></div>Guess</div>
+  </div>
+  <div class="final-pairs" id="final-pairs"></div>
+  <button class="cta-btn" id="restart-btn">Play again &rarr;</button>
+</div>
+
+</div>
+
+<script>
+(function(){
+
+let round=0, totalScore=0, results=[];
+let H=180, S=1, L=0.5;
+let target=null;
+
+const $=id=>document.getElementById(id);
+const screens=['s-start','s-flash','s-game','s-result','s-final'];
+
+function show(id){
+  screens.forEach(s=>{ $(s).classList.toggle('active',s===id); });
+}
+
+function hslStr(c){
+  return `hsl(${Math.round(c.h)},${Math.round(c.s*100)}%,${Math.round(c.l*100)}%)`;
+}
+
+function randColor(){
+  return { h: Math.random()*360, s: 0.5+Math.random()*0.5, l: 0.3+Math.random()*0.35 };
+}
+
+/* ── SLIDERS ── */
+function makeSlider(trackId, thumbId, onFrac){
+  const track=$(trackId), thumb=$(thumbId);
+  let active=false;
+
+  function applyY(clientY){
+    const r=track.getBoundingClientRect();
+    const frac=Math.max(0,Math.min(1,(clientY-r.top)/r.height));
+    setThumb(frac, r.height);
+    onFrac(frac);
+    redraw();
+  }
+
+  function setThumb(frac, h){
+    thumb.style.top=(frac*h)+'px';
+  }
+
+  track.addEventListener('mousedown',e=>{ active=true; applyY(e.clientY); e.preventDefault(); });
+  track.addEventListener('touchstart',e=>{ active=true; applyY(e.touches[0].clientY); e.preventDefault(); },{passive:false});
+  window.addEventListener('mousemove',e=>{ if(active) applyY(e.clientY); });
+  window.addEventListener('touchmove',e=>{ if(active) applyY(e.touches[0].clientY); },{passive:false});
+  window.addEventListener('mouseup',()=>active=false);
+  window.addEventListener('touchend',()=>active=false);
+
+  return {
+    setFrac(frac){
+      const r=track.getBoundingClientRect();
+      setThumb(frac, r.height);
+    }
+  };
+}
+
+/* KEY FIX: top of hue slider = 0° (red), bottom = 360° (red again)
+   frac=0 (top) → hue=0, frac=1 (bottom) → hue=360
+   So: H = frac * 360  BUT gradient must match: red at top, going DOWN through spectrum */
+const slH = makeSlider('sl-h','th-h', frac => { H = frac * 360; });
+const slS = makeSlider('sl-s','th-s', frac => { S = 1 - frac; }); // top=100%, bottom=0%
+const slL = makeSlider('sl-l','th-l', frac => { L = 1 - frac; }); // top=100%, bottom=0%
+
+function redraw(){
+  /* Hue gradient: top=0° red → bottom=360° red, going through full spectrum top-to-bottom */
+  $('sl-h').style.background = [
+    'linear-gradient(to bottom,',
+    'hsl(0,100%,50%),',
+    'hsl(30,100%,50%),',
+    'hsl(60,100%,50%),',
+    'hsl(90,100%,50%),',
+    'hsl(120,100%,50%),',
+    'hsl(150,100%,50%),',
+    'hsl(180,100%,50%),',
+    'hsl(210,100%,50%),',
+    'hsl(240,100%,50%),',
+    'hsl(270,100%,50%),',
+    'hsl(300,100%,50%),',
+    'hsl(330,100%,50%),',
+    'hsl(360,100%,50%))'
+  ].join(' ');
+
+  /* Saturation: top = full color, bottom = grey */
+  $('sl-s').style.background =
+    `linear-gradient(to bottom, hsl(${Math.round(H)},100%,${Math.round(L*100)}%), hsl(${Math.round(H)},0%,${Math.round(L*100)}%))`;
+
+  /* Lightness: top = white, mid = full color, bottom = black */
+  $('sl-l').style.background =
+    `linear-gradient(to bottom, hsl(${Math.round(H)},${Math.round(S*100)}%,100%), hsl(${Math.round(H)},${Math.round(S*100)}%,50%), hsl(${Math.round(H)},${Math.round(S*100)}%,0%))`;
+
+  const col = {h:H, s:S, l:L};
+  $('preview').style.background = hslStr(col);
+  $('v-h').textContent = Math.round(H)+'°';
+  $('v-s').textContent = Math.round(S*100)+'%';
+  $('v-l').textContent = Math.round(L*100)+'%';
+  $('preview-hsl').textContent = hslStr(col);
+}
+
+function resetSliders(){
+  H=180; S=1; L=0.5;
+  requestAnimationFrame(()=>{
+    slH.setFrac(0.5); // 180/360 = 0.5 → middle of track = cyan
+    slS.setFrac(0);   // frac=0 → S=1-0=1 → fully saturated (thumb at top)
+    slL.setFrac(0.5); // frac=0.5 → L=1-0.5=0.5 → mid lightness
+    redraw();
+  });
+}
+
+function buildPips(){
+  const el=$('pips'); el.innerHTML='';
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');
+    d.className='pip'+(i<round?' done':i===round?' active':'');
+    el.appendChild(d);
+  }
+}
+
+/* ── START ── */
+$('play-btn').onclick = startRound;
+
+function startRound(){
+  if(round>=5){ showFinal(); return; }
+  target=randColor();
+  buildPips();
+  $('round-label').textContent=`Round ${round+1} / 5`;
+  resetSliders();
+
+  /* Flash screen */
+  show('s-flash');
+  $('flash-full').style.background=hslStr(target);
+
+  const DURATION=5000;
+  let elapsed=0;
+
+  const iv=setInterval(()=>{
+    elapsed+=50;
+    const remaining=Math.max(0, DURATION-elapsed);
+    /* Show 500 → 0 */
+    $('flash-count').textContent=Math.ceil(remaining/10);
+    $('flash-bar').style.width=(100*(1-elapsed/DURATION))+'%';
+    if(elapsed>=DURATION){
+      clearInterval(iv);
+      show('s-game');
+      redraw();
+    }
+  },50);
+}
+
+/* ── SCORE ── */
+function calcScore(a,b){
+  let dh=Math.min(Math.abs(a.h-b.h), 360-Math.abs(a.h-b.h))/180;
+  let ds=Math.abs(a.s-b.s);
+  let dl=Math.abs(a.l-b.l);
+  let d=Math.sqrt(dh*dh+ds*ds+dl*dl);
+  return Math.max(0, 10*(1-d/Math.sqrt(3)));
+}
+
+function scorePhrase(sc){
+  if(sc>=9.5) return 'Flawless — are you part machine?';
+  if(sc>=8)   return 'Exceptional color memory.';
+  if(sc>=6.5) return 'Solid. You have a good eye.';
+  if(sc>=5)   return 'Not bad. Keep practicing.';
+  if(sc>=3)   return 'The color had other plans.';
+  return 'Colors are slippery things.';
+}
+
+/* ── SUBMIT ── */
+$('submit-btn').onclick=()=>{
+  const user={h:H,s:S,l:L};
+  const sc=calcScore(user,target);
+  totalScore+=sc;
+  results.push({user,target,sc});
+
+  $('r-orig').style.background=hslStr(target);
+  $('r-user').style.background=hslStr(user);
+  $('r-score').textContent=sc.toFixed(1);
+  $('r-label').textContent=sc>=7?'Great match':'Could be closer';
+  $('r-phrase').textContent=scorePhrase(sc);
+
+  setTimeout(()=>{
+    $('r-bar').style.width=(sc/10*100)+'%';
+  },80);
+
+  round++;
+  $('next-btn').textContent=round>=5?'See results →':'Next round →';
+  show('s-result');
+};
+
+$('next-btn').onclick=()=>{ if(round>=5) showFinal(); else startRound(); };
+
+/* ── FINAL ── */
+function showFinal(){
+  const avg=totalScore/5;
+  let note;
+  if(avg>=9)    note='Chromatic perfection.';
+  else if(avg>=7) note='Outstanding color vision.';
+  else if(avg>=5) note='A respectable performance.';
+  else if(avg>=3) note='Room to grow.';
+  else note='The colors won this round.';
+
+  $('final-score').textContent=totalScore.toFixed(1)+' / 50';
+  $('final-note').textContent=note;
+
+  const grid=$('final-pairs'); grid.innerHTML='';
+  results.forEach((r,i)=>{
+    const col=document.createElement('div');
+    col.className='final-pair-col';
+    col.innerHTML=`
+      <div class="final-pair-swatch" style="background:${hslStr(r.target)}"></div>
+      <div class="final-pair-swatch" style="background:${hslStr(r.user)}"></div>
+      <div class="final-pair-score">${r.sc.toFixed(1)}</div>
+      <div class="final-pair-round">R${i+1}</div>
+    `;
+    grid.appendChild(col);
+  });
+
+  show('s-final');
+}
+
+$('restart-btn').onclick=()=>{
+  round=0; totalScore=0; results=[];
+  show('s-start');
+};
+
+redraw();
+
+})();
+</script>
